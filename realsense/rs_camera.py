@@ -23,6 +23,8 @@ class RS_Camera():
         self.depth_to_disparity = rs.disparity_transform(True)
         self.disparity_to_depth = rs.disparity_transform(False)
 
+        self.Streaming = False
+
     def start_stream(self):
         self.pipeline = rs.pipeline()
         config = rs.config()
@@ -36,6 +38,7 @@ class RS_Camera():
             if i==0:
                 print("Waiting for auto-exposure to settle")
             self.pipeline.wait_for_frames()
+        self.Streaming = True
     
     def set_sensor_settings(self):
         sensors = self.profile.get_device().query_sensors()
@@ -56,7 +59,9 @@ class RS_Camera():
                 sensor.set_option(rs.option.white_balance, 4200.0)
 
     def get_data(self):
-        ''' In case we want to use temporal filtering
+        ''' In case we want to use more filtering 
+        # https://dev.intelrealsense.com/docs/post-processing-filters
+        # https://github.com/IntelRealSense/librealsense/blob/jupyter/notebooks/depth_filters.ipynb
         frames = []
         for i in range(10):
             aligned_frameset = self.align.process(self.pipeline.wait_for_frames())
@@ -76,9 +81,6 @@ class RS_Camera():
 
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
-        self.depth_frame = self.depth_to_disparity.process(self.depth_frame)
-        self.depth_frame = self.spatial_f.process(self.depth_frame)
-        self.depth_frame = self.disparity_to_depth.process(self.depth_frame)
         self.pointcloud = self.get_colored_pointcloud()
     
     def get_colored_pointcloud(self):
@@ -113,6 +115,9 @@ class RS_Camera():
         #cv.imwrite("test.bmp", self.img)
         cv.imwrite("test.png", self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
         o3d.io.write_point_cloud("pc.ply", self.pointcloud)        
+
+    def stop_streaming():
+        self.pipeline.stop()
 
 
 if __name__=="__main__":
