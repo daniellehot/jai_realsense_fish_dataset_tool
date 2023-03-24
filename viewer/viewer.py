@@ -198,18 +198,16 @@ class Viewer():
 
     def save_data(self):
         self.rs_cam.get_data()
-
         filename = self.get_filename(RGB_PATH_JAI)
-        
-        cv.imwrite(RGB_PATH_JAI + filename + ".png", self.viewer.jai_cam.Img, [cv.IMWRITE_PNG_COMPRESSION, 0])
-        cv.imwrite(RGB_PATH_RS + filename + ".png", self.viewer.rs_cam.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+        cv.imwrite(RGB_PATH_JAI + filename + ".png", self.jai_cam.Img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+        cv.imwrite(RGB_PATH_RS + filename + ".png", self.rs_cam.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".png")
         print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
         self.RGB_saved = True
 
-        o3d.io.write_point_cloud("pc.ply", self.viewer.rs_cam.pc)  
+        o3d.io.write_point_cloud(PC_PATH + filename + ".ply", self.rs_cam.pointcloud)  
         print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
-        
+
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
         print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
 
@@ -245,7 +243,6 @@ class Viewer():
 
     def get_filename(self, path):
         number_of_files = len(os.listdir(path))
-        #print(number_of_files)
         number_of_files += 1
         number_of_files = str(number_of_files).zfill(5)
         return  number_of_files
@@ -269,7 +266,7 @@ if __name__=="__main__":
     try:
         viewer.start_stream()
         while viewer.jai_cam.Streaming and viewer.rs_cam.Streaming:
-            print("V: Jai GO FPS: %.2f" % viewer.jai_cam.FrameRate, " Bandwidth: %.2f" % viewer.jai_cam.BandWidth, " Mb/s", end='\r', flush=True)
+            #print("V: Jai GO FPS: %.2f" % viewer.jai_cam.FrameRate, " Bandwidth: %.2f" % viewer.jai_cam.BandWidth, " Mb/s", end='\r', flush=True)
             if not viewer.saved:
                 viewer.retrieve_measures()
             else:

@@ -316,14 +316,7 @@ bool JaiGo::GrabImage()
         cout <<"JAI: "<<lResult.GetCodeString().GetAscii() << "\r";
     }
 
-    if (receivedImage)
-    {
-        return true;
-    } 
-    else
-    {
-        return false;
-    }
+    return receivedImage;
 }
 
 void JaiGo::CloseAndDisconnect()

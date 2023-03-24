@@ -80,14 +80,15 @@ class RS_Camera():
         aligned_frames = self.align.process(self.pipeline.wait_for_frames())
         self.color_frame = aligned_frames.get_color_frame()
         self.img = np.asanyarray(self.color_frame.get_data())
-        #print("RS: Received new image")     
+        print("RS: Receved image")     
 
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
         self.pointcloud = self.get_colored_pointcloud()
-        #print("RS: Received new pointcloud")
+        print("RS: Received pointcloud")
     
     def get_colored_pointcloud(self):
+        print("RS: get_colored_pointcloud()")
         pc = rs.pointcloud()
         pc.map_to(self.color_frame)
         points = rs.points()
