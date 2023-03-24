@@ -31,14 +31,16 @@ class RS_Camera():
         config.enable_stream(rs.stream.color, self.color_width, self.color_height, self.color_format, self.fps)
         config.enable_stream(rs.stream.depth, self.depth_width, self.depth_height, self.depth_format, self.fps)
         self.profile = self.pipeline.start(config)
+        print("RS: Pipeline started")
         self.set_sensor_settings()
         self.align = rs.align(rs.stream.color)
 
         for i in range(15):
             if i==0:
-                print("Waiting for auto-exposure to settle")
+                print("RS: Waiting for auto-exposure to settle")
             self.pipeline.wait_for_frames()
         self.Streaming = True
+        print("RS: Streaming started")
     
     def set_sensor_settings(self):
         sensors = self.profile.get_device().query_sensors()
@@ -74,14 +76,16 @@ class RS_Camera():
             frame = self.temporal.process(frame)
             frame = self.disparity_to_depth.process(frame)
         '''
-
+       
         aligned_frames = self.align.process(self.pipeline.wait_for_frames())
         self.color_frame = aligned_frames.get_color_frame()
-        self.img = np.asanyarray(self.color_frame.get_data())     
+        self.img = np.asanyarray(self.color_frame.get_data())
+        #print("RS: Received new image")     
 
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
         self.pointcloud = self.get_colored_pointcloud()
+        #print("RS: Received new pointcloud")
     
     def get_colored_pointcloud(self):
         pc = rs.pointcloud()
@@ -116,8 +120,12 @@ class RS_Camera():
         cv.imwrite("test.png", self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
         o3d.io.write_point_cloud("pc.ply", self.pointcloud)        
 
-    def stop_streaming():
+    def close(self):
+        print("RS: Disconnect device")
         self.pipeline.stop()
+
+    def stop_stream(self):
+        self.Streaming = False
 
 
 if __name__=="__main__":
@@ -127,10 +135,19 @@ if __name__=="__main__":
 
     print("Sleeping for 5 seconds")
     time.sleep(5)
+    durations = []
 
-    realsense.get_data()
-    print("Saving data")
-    realsense.save_data()
+    for i in range(10):
+        print("Iteration", i)
+        start = time.time()     
+        realsense.get_data()
+        stop = time.time()
+        durations.append(stop-start)
+    
+    duration_avg = np.average(np.asarray(durations))
+    print("Average duration", duration_avg)
+    #print("Saving data")
+    #realsense.save_data()
     
         
 

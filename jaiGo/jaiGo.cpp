@@ -17,7 +17,6 @@
 namespace py = pybind11;
 
 #define BUFFER_COUNT ( 16 )
-
 #define FILE_NAME ( "/home/daniel/jaiGO/myJaiStream/config.pvxml" )
 #define DEVICE_CONFIGURATION_TAG ( "DeviceConfiguration" )
 #define STREAM_CONFIGURAITON_TAG ( "StreamConfiguration" )
@@ -52,6 +51,7 @@ class JaiGo {
     public:
         bool Connected = false;
         bool Streaming = false;
+        bool LoadCustomCameraConfiguration = false;
 
         //Stream statistics
         double FrameRateVal = 0.0;
@@ -64,7 +64,8 @@ class JaiGo {
 
         void FindAndConnect();
         void StartStream();
-        bool GetImage();
+        void StopStream();
+        bool GrabImage();
         void CloseAndDisconnect();
 };
 
@@ -77,7 +78,7 @@ void JaiGo::FindAndConnect()
         lDevice = ConnectToDevice(lConnectionID);
         if (lDevice != NULL)
         {
-            cout<<"Connection and Device Acquired"<<endl;
+            cout<<"JAI: Connection and Device Acquired"<<endl;
             this->ConnectionID = lConnectionID;
             this->Device = lDevice;
             this->Connected = true;
@@ -91,7 +92,7 @@ bool JaiGo::FindDevice( PvString *aConnectionID)
     const PvDeviceInfo *lSelectedDI = NULL;
     PvSystem lSystem;
 
-    cout << endl << "Detecting devices." << endl;
+    cout << endl << "JAI: Detecting devices." << endl;
     
     lSystem.Find();
     vector<const PvDeviceInfo *> lDIVector;
@@ -115,16 +116,16 @@ bool JaiGo::FindDevice( PvString *aConnectionID)
     
     if ( lDIVector.size() == 0)
     {
-        cout << "No device found!" << endl;
+        cout << "JAI: No device found!" << endl;
         return false;
     } else 
     {
-        cout << "Found "<< lDIVector.size() << " devices. \n";
+        cout << "JAI: Found "<< lDIVector.size() << " devices. \n";
         for (uint i = 0; i < lDIVector.size(); i++)
         {
-            cout << i << ") " <<lDIVector[i]->GetDisplayID().GetAscii()<<endl;
+            cout << "   " << i << ") " <<lDIVector[i]->GetDisplayID().GetAscii()<<endl;
         }
-        cout << "Connecting to " << lDIVector.back()->GetDisplayID().GetAscii()<<endl;
+        cout << "JAI: Connecting to " << lDIVector.back()->GetDisplayID().GetAscii()<<endl;
         *aConnectionID = lDIVector.back()->GetConnectionID();
         return true;
     }
@@ -137,7 +138,7 @@ PvDevice* JaiGo::ConnectToDevice( const PvString &aConnectionID )
     lDevice = PvDevice::CreateAndConnect( aConnectionID, &lResult );
     if ( lDevice == NULL )
     {
-        cout << "Unable to connect to device: "
+        cout << "JAI: Unable to connect to device: "
         << lResult.GetCodeString().GetAscii()
         << " ("
         << lResult.GetDescription().GetAscii()
@@ -154,7 +155,14 @@ void JaiGo::StartStream()
     if ( lStream != NULL )
     {
         this->Stream = lStream;
-        if (JaiGo::LoadDeviceAndStreamConfiguration(this->Device, this->Stream))
+
+        bool DeviceAndStreamConfigurationReady = true; //With default setting this is always true
+        if (this->LoadCustomCameraConfiguration)
+        {
+            DeviceAndStreamConfigurationReady = JaiGo::LoadDeviceAndStreamConfiguration(this->Device, this->Stream); //If a custom configuration is needed, errors might occur
+        }
+        
+        if (DeviceAndStreamConfigurationReady)
         {
             PvPipeline *lPipeline = NULL;
             lPipeline = JaiGo::CreatePipeline(this->Device, lStream );
@@ -170,7 +178,7 @@ void JaiGo::StartStream()
                 this->StopCommand = dynamic_cast<PvGenCommand *>( lDeviceParams->Get( "AcquisitionStop" ) );
 
                 // Note: the pipeline must be initialized before we start acquisition
-                cout << "Starting pipeline" << endl;
+                cout << "JAI: Starting pipeline" << endl;
                 this->Pipeline->Start();
 
                 // Get stream parameters
@@ -181,7 +189,7 @@ void JaiGo::StartStream()
                 this->Bandwidth = dynamic_cast<PvGenFloat *>( lStreamParams->Get( "Bandwidth" ) );
 
                 // Enable streaming and send the AcquisitionStart command
-                cout << "Enabling streaming and sending AcquisitionStart command." << endl;
+                cout << "JAI: Enabling streaming and sending AcquisitionStart command." << endl;
                 this->Device->StreamEnable();
                 this->StartCommand->Execute();
 
@@ -192,17 +200,22 @@ void JaiGo::StartStream()
 
 }
 
+void JaiGo::StopStream()
+{
+    this->Streaming = false;
+}
+
 PvStream* JaiGo::OpenStream( const PvString &aConnectionID )
 {
     PvStream *lStream;
     PvResult lResult;
 
     // Open stream to the GigE Vision or USB3 Vision device
-    cout << "Opening stream from device." << endl;
+    cout << "JAI: Opening stream from device." << endl;
     lStream = PvStream::CreateAndOpen( aConnectionID, &lResult );
     if ( lStream == NULL )
     {
-        cout << "Unable to stream from device." << endl;
+        cout << "JAI: Unable to stream from device." << endl;
     }
 
     return lStream;
@@ -212,22 +225,22 @@ bool JaiGo::LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStrea
 {
     PvConfigurationReader lReader;
     // Load all the information into a reader.
-    cout << "Load information and configuration" << endl;
+    cout << "JAI: Load information and configuration" << endl;
     lReader.Load( FILE_NAME );
 
-    cout << "Restore configuration for a device with the configuration name" << endl;
+    cout << "JAI: Restore configuration for a device with the configuration name" << endl;
     PvResult lResult = lReader.Restore( DEVICE_CONFIGURATION_TAG, aDevice);
     if ( !lResult.IsOK() )
     {
-        cout << lResult.GetCodeString().GetAscii() << endl;
+        cout << "JAI: "<<lResult.GetCodeString().GetAscii() << endl;
         return false;
     }
 
-    cout << "Restore configuration for a stream with the configuration name" << endl;
+    cout << "JAI: Restore configuration for a stream with the configuration name" << endl;
     lResult = lReader.Restore( STREAM_CONFIGURAITON_TAG, aStream);
     if ( !lResult.IsOK() )
     {
-        cout << lResult.GetCodeString().GetAscii() << endl;
+        cout << "JAI: "<<lResult.GetCodeString().GetAscii() << endl;
         return false;
     }
 
@@ -252,7 +265,7 @@ PvPipeline* JaiGo::CreatePipeline( PvDevice *aDevice, PvStream *aStream )
     return lPipeline;
 }
 
-bool JaiGo::GetImage()
+bool JaiGo::GrabImage()
 { 
     bool receivedImage = false;
     PvBuffer *lBuffer = NULL;
@@ -285,13 +298,13 @@ bool JaiGo::GetImage()
             } 
             else
             {
-                cout<< "Incorrect payload type. Start stream with PvPayloadTypeImage. Current type is " << lBuffer->GetPayloadType() << endl;
+                cout<< "JAI: Incorrect payload type. Start stream with PvPayloadTypeImage. Current type is " << lBuffer->GetPayloadType() << endl;
             }
         }
         else
         {
             // Non OK operational result
-            cout << lOperationResult.GetCodeString().GetAscii() << endl;
+            cout <<"JAI: "<<lOperationResult.GetCodeString().GetAscii() << endl;
         }
 
         // Release the buffer back to the pipeline
@@ -300,7 +313,7 @@ bool JaiGo::GetImage()
     else
     {
         // Retrieve buffer failure
-        cout << lResult.GetCodeString().GetAscii() << "\r";
+        cout <<"JAI: "<<lResult.GetCodeString().GetAscii() << "\r";
     }
 
     if (receivedImage)
@@ -317,30 +330,30 @@ void JaiGo::CloseAndDisconnect()
 {   
     if (this->StopCommand != NULL)
     {
-        cout << "Sending AcquisitionStop command to the device" << endl;
+        cout << "JAI: Sending AcquisitionStop command to the device" << endl;
         this->StopCommand->Execute();
     }
 
     if (this->Device != NULL)
     {
         // Disable streaming on the device
-        cout << "Disable streaming on the controller." << endl;
+        cout << "JAI: Disable streaming on the controller." << endl;
         this->Device->StreamDisable();
     }
 
     if (this->Pipeline != NULL)
     {
         // Stop the pipeline
-        cout << "Stop pipeline" << endl;
+        cout << "JAI: Stop pipeline" << endl;
         this->Pipeline->Stop();
 
-        cout << "Deleting pipeline" << endl;
+        cout << "JAI: Deleting pipeline" << endl;
         delete this->Pipeline;
     }
 
     if (this->Stream != NULL)
     {
-        cout << "Closing stream" << endl;
+        cout << "JAI: Closing stream" << endl;
         this->Stream->Close();
         PvStream::Free( this->Stream );
         //this->Streaming = false;
@@ -348,7 +361,7 @@ void JaiGo::CloseAndDisconnect()
 
     if (this->Device != NULL)
     {
-        cout << "Disconnecting device" << endl;
+        cout << "JAI: Disconnecting device" << endl;
         this->Device->Disconnect();
         PvDevice::Free( this->Device );
         this->Connected = false;
@@ -413,10 +426,12 @@ PYBIND11_MODULE(pyJaiGo, m) {
         .def(py::init<>())
         .def("FindAndConnect", &JaiGo::FindAndConnect)
         .def("StartStream", &JaiGo::StartStream)
-        .def("GetImage", &JaiGo::GetImage)
+        .def("StopStream", &JaiGo::StopStream)
+        .def("GrabImage", &JaiGo::GrabImage)
         .def("CloseAndDisconnect", &JaiGo::CloseAndDisconnect)
 
         .def_readwrite("Streaming", &JaiGo::Streaming)
+        .def_readwrite("LoadCustomCameraConfiguration", &JaiGo::LoadCustomCameraConfiguration)
         .def_readonly("Connected", &JaiGo::Connected)
         .def_readonly("FrameRate", &JaiGo::FrameRateVal)
         .def_readonly("BandWidth", &JaiGo::BandwidthVal)
