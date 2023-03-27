@@ -31,7 +31,8 @@ RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
 PC_PATH = os.path.join(ROOT_PATH, RS_PATH, "pc/")
 ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
-LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
+#LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
+LOGS_PATH = os.path.join("logs/")
 
 def create_folders():
     if not os.path.exists(ROOT_PATH):
@@ -43,6 +44,8 @@ def create_folders():
         os.mkdir(PC_PATH)
         os.mkdir(ANNOTATIONS_PATH_JAI)
         os.mkdir(ANNOTATIONS_PATH_RS)
+    
+    if not os.path.exists(LOGS_PATH):
         os.mkdir(LOGS_PATH)
 
 class Viewer():
@@ -118,8 +121,13 @@ class Viewer():
 
     def create_session_log(self):
         self.log_data = None
+        self.log_entry = 0
         filename = self.get_filename(LOGS_PATH) + ".csv"
         self.path_to_session_log = os.path.join(LOGS_PATH, filename)
+        with open(self.path_to_session_log, 'a') as f: 
+            writer = csv.writer(f)
+            header = ['species', 'id', 'side', 'width', 'height', 'entry'] 
+            writer.writerow(header)
         
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
@@ -160,6 +168,7 @@ class Viewer():
                 self.species.append(species)
                 self.ids.append(id)
                 self.sides.append(side)
+                self.log_entry += 1
 
     def remove(self, event, x, y, flags, param):    
         if event == cv.EVENT_LBUTTONDOWN:
@@ -171,6 +180,7 @@ class Viewer():
                     self.species.pop(idx)
                     self.ids.pop(idx)
                     self.sides.pop(idx)
+                    self.log_entry += 1
                     break
     
     def popup(self, event, x, y, flags, param):
@@ -204,10 +214,8 @@ class Viewer():
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".png")
         print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
         self.RGB_saved = True
-
         o3d.io.write_point_cloud(PC_PATH + filename + ".ply", self.rs_cam.pointcloud)  
         print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
-
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
         print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
 
@@ -221,12 +229,16 @@ class Viewer():
             for annotation in data:
                 writer.writerow(annotation)
     
-    def format_annotations(self):
+    def format_annotations(self, log_format = False):
         scale_width = self.img_cv.shape[1]/self.scaled_img.shape[1]
         scale_height = self.img_cv.shape[0]/self.scaled_img.shape[0]
         data_formated = []
         for (species, id, side, xy) in zip(self.species, self.ids, self.sides, self.coordinates):
-            data_formated.append([species, id, side, int(xy[0]*scale_width), int(xy[1]*scale_height) ])
+            if (not log_format):
+                data_formated.append([species, id, side, int(xy[0]*scale_width), int(xy[1]*scale_height) ])
+            else:
+                data_formated.append([species, id, side, int(xy[0]*scale_width), int(xy[1]*scale_height), self.log_entry ])
+
         return data_formated
 
     def remove_last(self):
@@ -248,16 +260,14 @@ class Viewer():
         return  number_of_files
     
     def update_log(self):
-        data = self.format_annotations()
+        data = self.format_annotations(log_format=True)
         if data != self.log_data:
             with open(self.path_to_session_log, 'a') as f: 
                 writer = csv.writer(f)
-                f.write(str(datetime.now()) + "\n")
-                header = ['species', 'id', 'side', 'width', 'height'] 
-                writer.writerow(header)
                 for annotation in data:
                     writer.writerow(annotation)
         self.log_data = data
+       
 
 
 if __name__=="__main__":
@@ -278,10 +288,9 @@ if __name__=="__main__":
 
     except Exception as e:
         print("V: Error occured, stopping streams and shutting down")
-        print("V: One of the cameras is not streaming.")
         print("   Streaming status Jai ", viewer.jai_cam.Streaming)
         print("   Streaming status RealSense ", viewer.rs_cam.Streaming)
-        print("V: ", e)
+        print("ERROR: ", e)
         if viewer.jai_cam.Streaming:
             viewer.jai_cam.CloseAndDisconnect()
         if viewer.rs_cam.Streaming:
