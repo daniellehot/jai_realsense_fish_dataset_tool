@@ -66,6 +66,7 @@ class Viewer():
         #self.start_stream()
         self.start_keylistener()
         self.create_session_log()
+        self.get_resized_dimension()
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -129,6 +130,12 @@ class Viewer():
             header = ['species', 'id', 'side', 'width', 'height', 'entry'] 
             writer.writerow(header)
         
+    def get_resized_dimension(self):
+        scale_percent = 50 # percent of original size
+        width = int(2464 * scale_percent / 100)
+        height = int(2056 * scale_percent / 100)
+        self.resized_dim = (width, height)
+
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
             self.img_cv = self.jai_cam.Img
@@ -138,9 +145,8 @@ class Viewer():
             self.img_cv = self.jai_cam.Img
         
     def show(self):
-        #window_title = "zed " + self.mode
         self.window_title = "jai"
-        self.scaled_img = cv.resize(self.img_cv, (1280, 720))
+        self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
         self.draw_annotations()
         cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
         if self.saved:
@@ -163,7 +169,7 @@ class Viewer():
         if event == cv.EVENT_LBUTTONDOWN:
             coordinate = (x,y)
             id, species, side = self.get_annotation()
-            if species != "cancel":
+            if species != "cancel" and self.check_for_double_entry(_species = species, _id = id, _side = side):
                 self.coordinates.append(coordinate)
                 self.species.append(species)
                 self.ids.append(id)
@@ -205,6 +211,14 @@ class Viewer():
                 self.guiInstance.master.destroy()
                 self.guiInstance = None
                 return id, species, side
+            
+    def check_for_double_entry(self, _species, _id, _side):
+        current_annotation = str(_species) + str(_id) + str(_side) 
+        for (species, id, side) in zip(self.species, self.ids, self.sides):
+            if current_annotation == (str(species) + str(id) + str(side) ):
+                print("Double annotation. Check annotation")
+                return False
+        return True
 
     def save_data(self):
         self.rs_cam.get_data()
