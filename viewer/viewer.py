@@ -3,20 +3,20 @@ import cv2 as cv
 import os
 import math
 from pynput import keyboard
-import numpy as np
-from tkinter import messagebox
+#import numpy as np
+#from tkinter import messagebox
 import csv
-from datetime import datetime
+#from datetime import datetime
 import open3d as o3d
-import time 
+#import time 
 
 # Custom modules
 import sys
-sys.path.append("../realsense/")
+sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/realsense")
 import rs_camera
-sys.path.append("../tkinter/")
+sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/tkinter")
 import tkinter_gui as gui
-sys.path.append("../jaiGo/")
+sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/")
 import pyJaiGo
 
 ## PATH CONSTANTS ##
@@ -62,11 +62,13 @@ class Viewer():
 
         self.color = (0, 0, 255) #BGR
         self.mode = "annotating"
+        self.dragging = False
+        self.dragged_point_idx = None
 
         #self.start_stream()
         self.start_keylistener()
         self.create_session_log()
-        self.get_resized_dimension()
+        self.get_resized_dimension(scale_percent=50)
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -89,11 +91,17 @@ class Viewer():
             if not self.saved:
                 if key.char == "m":
                     if self.mode == "annotating":
+                        self.mode = "dragging"
+                        self.color = (0, 123, 122)
+                    
+                    elif self.mode == "dragging":
+                        self.dragging = False
                         self.mode = "correcting"
-                        self.color = (255, 0, 0)
-                    else:
-                        self.mode = "annotating"
                         self.color = (0, 0, 255)
+
+                    elif self.mode == "correcting":
+                        self.mode = "annotating"
+                        self.color = (255, 0, 0)
                 
             if key.char == "z" and self.saved:
                 self.remove_last()
@@ -130,8 +138,7 @@ class Viewer():
             header = ['species', 'id', 'side', 'width', 'height', 'entry'] 
             writer.writerow(header)
         
-    def get_resized_dimension(self):
-        scale_percent = 50 # percent of original size
+    def get_resized_dimension(self, scale_percent):
         width = int(2464 * scale_percent / 100)
         height = int(2056 * scale_percent / 100)
         self.resized_dim = (width, height)
@@ -154,8 +161,10 @@ class Viewer():
         else:
             if self.mode == "annotating": 
                 cv.setMouseCallback(self.window_title, self.get)
-            if self.mode == "correcting":
-                cv.setMouseCallback(self.window_title, self.remove)  
+            elif self.mode == "dragging":
+                cv.setMouseCallback(self.window_title, self.drag)
+            elif self.mode == "correcting": 
+                cv.setMouseCallback(self.window_title, self.remove)
         cv.imshow(self.window_title, self.scaled_img)
         self.update_log()
         
@@ -175,6 +184,25 @@ class Viewer():
                 self.ids.append(id)
                 self.sides.append(side)
                 self.log_entry += 1
+
+    def drag(self, event, x, y, flags, param):
+        #print("self.dragging", self.dragging)
+        if self.dragging:
+            print("Updating the point")
+            self.coordinates[self.dragged_point_idx] = (x, y)
+
+            if event == cv.EVENT_LBUTTONUP:
+                print("Stopped updating the point")
+                self.dragging = False
+                self.dragged_point_idx = None
+        else:
+            if event == cv.EVENT_LBUTTONDOWN:
+                print("Selecting point")
+                for coordinate in self.coordinates:
+                    dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
+                    if dist < 20:
+                        self.dragging = True
+                        self.dragged_point_idx =self.coordinates.index(coordinate) 
 
     def remove(self, event, x, y, flags, param):    
         if event == cv.EVENT_LBUTTONDOWN:
@@ -282,7 +310,6 @@ class Viewer():
                     writer.writerow(annotation)
         self.log_data = data
        
-
 
 if __name__=="__main__":
     create_folders()
