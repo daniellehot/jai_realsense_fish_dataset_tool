@@ -60,8 +60,8 @@ class Viewer():
         self.saved = 0
         self.RGB_saved = False
 
-        self.color = (0, 0, 255) #BGR
         self.mode = "annotating"
+        self.color = (0, 0, 255) #BGR
         self.dragging = False
         self.dragged_point_idx = None
 
@@ -92,23 +92,29 @@ class Viewer():
                 if key.char == "m":
                     if self.mode == "annotating":
                         self.mode = "dragging"
-                        self.color = (0, 123, 122)
+                        self.color = (0, 255, 255)
                     
                     elif self.mode == "dragging":
                         self.dragging = False
                         self.mode = "correcting"
-                        self.color = (0, 0, 255)
+                        self.color = (255, 0, 0)
 
                     elif self.mode == "correcting":
                         self.mode = "annotating"
-                        self.color = (255, 0, 0)
+                        self.color = (0, 0, 255)
                 
             if key.char == "z" and self.saved:
                 self.remove_last()
                 self.saved = 0
-                self.color = (0, 0, 255)
+                #self.color = (0, 0, 255)
 
             if key.char == "r":
+                self.saved = 0
+                self.RGB_saved = False
+                #self.mode = "annotating"
+                self.color = (0, 0, 255)
+
+            if key.char == "R":
                 self.coordinates.clear()
                 self.species.clear()
                 self.ids.clear()
