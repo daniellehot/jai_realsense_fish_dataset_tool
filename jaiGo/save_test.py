@@ -8,7 +8,7 @@ camera.FindAndConnect()
 if camera.Connected:
     camera.StartStream()
 
-for i in range(5):
+for i in range(1):
     to_save = ["images/img_" + str(i) + ".bmp",
                "images/img_" + str(i) + ".raw",
                "images/img_" + str(i) + ".tiff"]
