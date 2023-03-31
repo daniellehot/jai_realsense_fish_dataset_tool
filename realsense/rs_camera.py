@@ -1,5 +1,4 @@
 import cv2 as cv 
-import os 
 import pyrealsense2 as rs
 import numpy as np
 import open3d as o3d
@@ -84,9 +83,14 @@ class RS_Camera():
 
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
+        self.depth_map = np.asanyarray(self.depth_frame.get_data())
+        self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
+        print("RS: Received depth map")
+
         self.pointcloud = self.get_colored_pointcloud()
         print("RS: Received pointcloud")
-    
+
+
     def get_colored_pointcloud(self):
         print("RS: get_colored_pointcloud()")
         pc = rs.pointcloud()
@@ -130,25 +134,9 @@ class RS_Camera():
 
 
 if __name__=="__main__":
-    import time 
     realsense = RS_Camera()
     realsense.start_stream()
-
-    print("Sleeping for 5 seconds")
-    time.sleep(5)
-    durations = []
-
-    for i in range(10):
-        print("Iteration", i)
-        start = time.time()     
-        realsense.get_data()
-        stop = time.time()
-        durations.append(stop-start)
-    
-    duration_avg = np.average(np.asarray(durations))
-    print("Average duration", duration_avg)
-    #print("Saving data")
-    #realsense.save_data()
+    realsense.get_data()
     
         
 

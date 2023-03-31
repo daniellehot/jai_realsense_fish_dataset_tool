@@ -25,9 +25,10 @@ ROOT_LOCAL = "data/"
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
-TEST_PATH = ROOT_PATH + "test"
+#TEST_PATH = ROOT_PATH + "test"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
+DEPTH_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "depth/")
 PC_PATH = os.path.join(ROOT_PATH, RS_PATH, "pc/")
 ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
@@ -194,16 +195,16 @@ class Viewer():
     def drag(self, event, x, y, flags, param):
         #print("self.dragging", self.dragging)
         if self.dragging:
-            print("Updating the point")
+            #print("Updating the point")
             self.coordinates[self.dragged_point_idx] = (x, y)
 
             if event == cv.EVENT_LBUTTONUP:
-                print("Stopped updating the point")
+                #print("Stopped updating the point")
                 self.dragging = False
                 self.dragged_point_idx = None
         else:
             if event == cv.EVENT_LBUTTONDOWN:
-                print("Selecting point")
+                #print("Selecting point")
                 for coordinate in self.coordinates:
                     dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
                     if dist < 20:
@@ -262,6 +263,8 @@ class Viewer():
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".png")
         print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
         self.RGB_saved = True
+        cv.imwrite(DEPTH_PATH_RS + filename + ".png", self.rs_cam.depth_map)
+        print("V: DEPTH saved ", DEPTH_PATH_RS + filename + ".png")
         o3d.io.write_point_cloud(PC_PATH + filename + ".ply", self.rs_cam.pointcloud)  
         print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
