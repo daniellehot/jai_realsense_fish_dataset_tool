@@ -112,7 +112,7 @@ class Viewer():
                 self.saved = 0
                 self.RGB_saved = False
                 #self.mode = "annotating"
-                self.color = (0, 0, 255)
+                #self.color = (0, 0, 255)
 
             if key.char == "R":
                 self.coordinates.clear()
