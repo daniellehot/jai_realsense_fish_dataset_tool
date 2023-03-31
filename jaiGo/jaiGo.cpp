@@ -1,3 +1,5 @@
+#include <string>
+
 #include <PvSampleUtils.h>
 #include <PvDevice.h>
 #include <PvDeviceGEV.h>
@@ -8,6 +10,7 @@
 #include <PvBuffer.h>
 #include <PvPipeline.h>
 #include <PvConfigurationReader.h>
+#include <PvBufferWriter.h>
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -27,7 +30,8 @@ class JaiGo {
         PvDevice *Device = NULL;
         PvStream *Stream = NULL;
         PvPipeline *Pipeline = NULL;
-        
+        PvBuffer *ImgBuffer = NULL;
+
         PvGenCommand *StartCommand = NULL;
         PvGenCommand *StopCommand = NULL;
         PvGenFloat *FrameRate = NULL;
@@ -66,6 +70,7 @@ class JaiGo {
         void StartStream();
         void StopStream();
         bool GrabImage();
+        bool SaveImage(const string path);
         void CloseAndDisconnect();
 };
 
@@ -295,6 +300,7 @@ bool JaiGo::GrabImage()
                 cvtColor(cvImg, cvColorImg, cv::COLOR_BayerRG2RGB);
                 this->npImg = JaiGo::mat_to_nparray(cvColorImg);
                 receivedImage = true;
+                this->ImgBuffer = lBuffer;
             } 
             else
             {
@@ -308,7 +314,7 @@ bool JaiGo::GrabImage()
         }
 
         // Release the buffer back to the pipeline
-        this->Pipeline->ReleaseBuffer( lBuffer );
+        this->Pipeline->ReleaseBuffer(lBuffer);
     }
     else
     {
@@ -317,6 +323,33 @@ bool JaiGo::GrabImage()
     }
 
     return receivedImage;
+}
+
+bool JaiGo::SaveImage(const string path)
+{
+    PvBufferWriter ImgWriter;
+    PvResult lResult;
+
+    if (path.find("bmp") != string::npos)
+    {
+        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatBMP);
+    }
+    else if (path.find("tiff") != string::npos)
+    {
+        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatTIFF);
+    }
+    else if (path.find("raw") != string::npos)
+    {
+        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatRaw);
+    }
+
+    if ( lResult.IsFailure() ) 
+    {
+        cout <<"    JAI ERROR: Could not save the image."<<endl;
+        cout <<"    JAI ERROR: "<<lResult.GetCodeString().GetAscii()<<endl;
+        return false;
+    }
+    return true;
 }
 
 void JaiGo::CloseAndDisconnect()
@@ -421,6 +454,7 @@ PYBIND11_MODULE(pyJaiGo, m) {
         .def("StartStream", &JaiGo::StartStream)
         .def("StopStream", &JaiGo::StopStream)
         .def("GrabImage", &JaiGo::GrabImage)
+        .def("SaveImage", &JaiGo::SaveImage)
         .def("CloseAndDisconnect", &JaiGo::CloseAndDisconnect)
 
         .def_readwrite("Streaming", &JaiGo::Streaming)
