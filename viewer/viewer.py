@@ -268,47 +268,36 @@ class Viewer():
                 return False
         return True
 
-    """
-    def save_data(self):
-        self.rs_cam.get_data()
-        filename = self.get_filename(RGB_PATH_JAI)
-        cv.imwrite(RGB_PATH_JAI + filename + ".png", self.jai_cam.Img, [cv.IMWRITE_PNG_COMPRESSION, 0])
-        cv.imwrite(RGB_PATH_RS + filename + ".png", self.rs_cam.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
-        print("V: RGB saved ", RGB_PATH_JAI + filename + ".png")
-        print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
-        self.RGB_saved = True
-        cv.imwrite(DEPTH_PATH_RS + filename + ".png", self.rs_cam.depth_map)
-        print("V: DEPTH saved ", DEPTH_PATH_RS + filename + ".png")
-        o3d.io.write_point_cloud(PC_PATH + filename + ".ply", self.rs_cam.pointcloud)  
-        print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
-        self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
-        print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
-    """
-
     def save_data(self):
         print("V: Timestamp ", datetime.now())
         self.rs_cam.get_data()
         filename = self.get_filename(RGB_PATH_JAI)
+        self.saved_files = []
 
         self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
+        self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
         
         self.rs_cam.save_image(RGB_PATH_RS + filename + ".png")
+        self.saved_files.append(RGB_PATH_RS + filename + ".png")
         print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
 
         self.rs_cam.save_depth_map(DEPTH_PATH_RS + filename + ".png")
+        self.saved_files.append(DEPTH_PATH_RS + filename + ".png")
         print("V: DEPTH saved ", DEPTH_PATH_RS + filename + ".png")
 
         self.rs_cam.save_intrinsics(DEPTH_PATH_RS + filename + ".json")
+        self.saved_files.append(DEPTH_PATH_RS + filename + ".json")
         print("V: INTRINSICS saved ", DEPTH_PATH_RS + filename + ".json")
 
         self.rs_cam.save_pointcloud(PC_PATH + filename + ".ply")
+        self.saved_files.append(PC_PATH + filename + ".ply")
         print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
 
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
+        self.saved_files.append(ANNOTATIONS_PATH_JAI + filename + ".csv")
         print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
         self.RGB_saved = True
-
 
     def save_annotations(self, path):
         data = self.format_annotations()
@@ -329,20 +318,14 @@ class Viewer():
                 data_formated.append([species, id, side, int(xy[0]*scale_width), int(xy[1]*scale_height) ])
             else:
                 data_formated.append([species, id, side, int(xy[0]*scale_width), int(xy[1]*scale_height), self.log_entry ])
-
         return data_formated
 
     def remove_last(self):
-        file_to_remove = int(self.get_filename(RGB_PATH_JAI)) - 1
-        file_to_remove = str(file_to_remove).zfill(5)
-        os.remove(os.path.join(RGB_PATH_JAI, file_to_remove + ".png"))
-        print("V: Removed ", os.path.join(RGB_PATH_JAI, file_to_remove + ".png"))
-        os.remove(os.path.join(RGB_PATH_RS, file_to_remove + ".png"))
-        print("V: Removed ", os.path.join(RGB_PATH_RS, file_to_remove + ".png"))
-        os.remove(os.path.join(PC_PATH, file_to_remove + ".ply"))
-        print("V: Removed ", os.path.join(PC_PATH, file_to_remove + ".ply"))
-        os.remove(os.path.join(ANNOTATIONS_PATH_JAI, file_to_remove + ".csv"))
-        print("V: Removed ", os.path.join(ANNOTATIONS_PATH_JAI, file_to_remove + ".csv"))
+        print("V: Timestamp ", datetime.now())
+        for file in self.saved_files:
+            os.remove(file)
+            print("V: Removed ", file)
+        self.saved_files.clear() 
 
     def get_filename(self, path):
         number_of_files = len(os.listdir(path))
