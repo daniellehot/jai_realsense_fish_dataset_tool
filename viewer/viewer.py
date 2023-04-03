@@ -61,8 +61,13 @@ class Viewer():
         self.saved = 0
         self.RGB_saved = False
 
+        self.mode_color_dict = {"annotating" : (0, 0, 255),
+                                "dragging" : (0, 255, 255), 
+                                "correcting" : (255, 0, 0),
+                                "saved" : (0, 255, 0)}                                 
         self.mode = "annotating"
-        self.color = (0, 0, 255) #BGR
+        #self.color = (0, 0, 255) #BGR
+        self.color = self.mode_color_dict[self.mode]
         self.dragging = False
         self.dragged_point_idx = None
 
@@ -86,34 +91,41 @@ class Viewer():
             #print('alphanumeric key {0} pressed'.format(key.char))
             if key.char == "s" and len(self.coordinates) != 0 and not self.saved:
                 self.saved = 1
-                self.color = (0, 255, 0)
+                #self.color = (0, 255, 0)
+                self.color = self.mode_color_dict["saved"]
                 self.save_data()
                 
             if not self.saved:
                 if key.char == "m":
                     if self.mode == "annotating":
                         self.mode = "dragging"
-                        self.color = (0, 255, 255)
-                    
+                        #self.color = (0, 255, 255)
+                        self.color = self.mode_color_dict[self.mode]
+
                     elif self.mode == "dragging":
                         self.dragging = False
                         self.mode = "correcting"
-                        self.color = (255, 0, 0)
+                        #self.color = (255, 0, 0)
+                        self.color = self.mode_color_dict[self.mode]
 
                     elif self.mode == "correcting":
                         self.mode = "annotating"
-                        self.color = (0, 0, 255)
+                        #self.color = (0, 0, 255)
+                        self.color = self.mode_color_dict[self.mode]
                 
             if key.char == "z" and self.saved:
                 self.remove_last()
                 self.saved = 0
                 #self.color = (0, 0, 255)
+                self.color = self.mode_color_dict[self.mode]
+
 
             if key.char == "r":
                 self.saved = 0
                 self.RGB_saved = False
                 #self.mode = "annotating"
                 #self.color = (0, 0, 255)
+                self.color = self.mode_color_dict[self.mode]
 
             if key.char == "R":
                 self.coordinates.clear()
@@ -123,7 +135,8 @@ class Viewer():
                 self.saved = 0
                 self.RGB_saved = False
                 self.mode = "annotating"
-                self.color = (0, 0, 255)
+                #self.color = (0, 0, 255)
+                self.color = self.mode_color_dict[self.mode]
 
             if key.char == "q":
                 self.stop_stream()
@@ -337,7 +350,7 @@ if __name__=="__main__":
         viewer.rs_cam.close()
 
     except Exception as e:
-        print("V: Error occured, stopping streams and shutting down")
+        print("V: Error occurred, stopping streams and shutting down")
         print("   Streaming status Jai ", viewer.jai_cam.Streaming)
         print("   Streaming status RealSense ", viewer.rs_cam.Streaming)
         print("ERROR: ", e)

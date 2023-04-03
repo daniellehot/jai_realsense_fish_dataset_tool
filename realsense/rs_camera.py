@@ -2,6 +2,7 @@ import cv2 as cv
 import pyrealsense2 as rs
 import numpy as np
 import open3d as o3d
+import json
 
 class RS_Camera():
     def __init__(self):
@@ -81,10 +82,23 @@ class RS_Camera():
         self.img = np.asanyarray(self.color_frame.get_data())
         print("RS: Receved image")     
 
+        intrinsics = self.profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
+        self.intrinsics_dict = {
+            "width" : intrinsics.width,
+            "height" : intrinsics.height,
+            "cx" : intrinsics.ppx,
+            "cy" : intrinsics.ppy,
+            "fx" : intrinsics.fx,
+            "fy" : intrinsics.fy,
+            "distortion model" : intrinsics.model,
+            "distortion coefficients" : intrinsics.coeffs
+        } 
+        print("RS: Received intrinsics")
+        
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
         self.depth_map = np.asanyarray(self.depth_frame.get_data())
-        self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
+        #self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
         print("RS: Received depth map")
 
         self.pointcloud = self.get_colored_pointcloud()
@@ -119,11 +133,21 @@ class RS_Camera():
         
     def normalize(self, x):
         return x.astype(float)/255
+
+    def save_image(self, path):
+        cv.imwrite(path, self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+
+    def save_pointcloud(self, path):
+        o3d.io.write_point_cloud(path, self.pointcloud) 
     
-    def save_data(self):
-        #cv.imwrite("test.bmp", self.img)
-        cv.imwrite("test.png", self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
-        o3d.io.write_point_cloud("pc.ply", self.pointcloud)        
+    def save_depth_map(self, path):
+        cv.imwrite(path, self.depth_map, [cv.IMWRITE_PNG_COMPRESSION, 0])
+
+    def save_intrinsics(self, path):
+        intrinsics_json = json.dump(self.intrinsics_dict)
+        json_file = open(path,"w")
+        json_file.write(intrinsics_json)
+        json_file.close() 
 
     def close(self):
         print("RS: Disconnect device")
@@ -131,6 +155,11 @@ class RS_Camera():
 
     def stop_stream(self):
         self.Streaming = False
+
+    def save_data_test(self):
+        #cv.imwrite("test.bmp", self.img)
+        cv.imwrite("test.png", self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+        o3d.io.write_point_cloud("pc.ply", self.pointcloud)        
 
 
 if __name__=="__main__":
