@@ -212,3 +212,6 @@ pyrightconfig.json
 *.csv
 *.png
 *.ply
+*.bmp
+*.raw
+*.tiff
