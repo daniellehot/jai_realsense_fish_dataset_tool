@@ -90,9 +90,9 @@ class RS_Camera():
             "cy" : intrinsics.ppy,
             "fx" : intrinsics.fx,
             "fy" : intrinsics.fy,
-            "distortion model" : intrinsics.model,
+            "distortion model" : "Inverse Brown Conrady",
             "distortion coefficients" : intrinsics.coeffs
-        } 
+        }
         print("RS: Received intrinsics")
         
         self.depth_frame = aligned_frames.get_depth_frame()
@@ -144,10 +144,12 @@ class RS_Camera():
         cv.imwrite(path, self.depth_map, [cv.IMWRITE_PNG_COMPRESSION, 0])
 
     def save_intrinsics(self, path):
-        intrinsics_json = json.dump(self.intrinsics_dict)
-        json_file = open(path,"w")
-        json_file.write(intrinsics_json)
-        json_file.close() 
+        #intrinsics_json = json.dumps(self.intrinsics_dict)
+        #json_file = open(path,"w")
+        #json_file.write(intrinsics_json)
+        #json_file.close() 
+        with open(path, 'w') as fp:
+            json.dump(self.intrinsics_dict, fp)
 
     def close(self):
         print("RS: Disconnect device")
@@ -166,6 +168,14 @@ if __name__=="__main__":
     realsense = RS_Camera()
     realsense.start_stream()
     realsense.get_data()
-    
+    realsense.save_image("test_data/test.png")
+    realsense.save_pointcloud("test_data/test.ply")
+    realsense.save_depth_map("test_data/test_depth.png")
+    realsense.save_intrinsics("test_data/test_3.json")
+
+    with open('test_data/test_3.json', 'r') as f:
+        data = json.load(f)
+    print(data["cx"])
+        
         
 

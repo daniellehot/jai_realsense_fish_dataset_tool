@@ -6,8 +6,8 @@ from pynput import keyboard
 #import numpy as np
 #from tkinter import messagebox
 import csv
-#from datetime import datetime
-import open3d as o3d
+from datetime import datetime
+#import open3d as o3d
 #import time 
 
 # Custom modules
@@ -268,6 +268,7 @@ class Viewer():
                 return False
         return True
 
+    """
     def save_data(self):
         self.rs_cam.get_data()
         filename = self.get_filename(RGB_PATH_JAI)
@@ -282,6 +283,32 @@ class Viewer():
         print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
         print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
+    """
+
+    def save_data(self):
+        print("V: Timestamp ", datetime.now())
+        self.rs_cam.get_data()
+        filename = self.get_filename(RGB_PATH_JAI)
+
+        self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
+        print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
+        
+        self.rs_cam.save_image(RGB_PATH_RS + filename + ".png")
+        print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
+
+        self.rs_cam.save_depth_map(DEPTH_PATH_RS + filename + ".png")
+        print("V: DEPTH saved ", DEPTH_PATH_RS + filename + ".png")
+
+        self.rs_cam.save_intrinsics(DEPTH_PATH_RS + filename + ".json")
+        print("V: INTRINSICS saved ", DEPTH_PATH_RS + filename + ".json")
+
+        self.rs_cam.save_pointcloud(PC_PATH + filename + ".ply")
+        print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
+
+        self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
+        print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
+        self.RGB_saved = True
+
 
     def save_annotations(self, path):
         data = self.format_annotations()
