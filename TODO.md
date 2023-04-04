@@ -5,3 +5,5 @@
 5. Config files
 6. Heatmaps
 7. Setup new laptop
+8. Stefan access to Niels Office
+9. Upload data from April 4 (see hard disk)
