@@ -21,7 +21,8 @@ import pyJaiGo
 
 ## PATH CONSTANTS ##
 ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
-ROOT_LOCAL = "data/"
+ROOT_LOCAL = "/home/daniel/jai_realsense_fish_dataset_tool/viewer/data/"
+#ROOT_LOCAL = "data/"
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
@@ -29,7 +30,7 @@ JAI_PATH = "jai/"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
 DEPTH_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "depth/")
-PC_PATH = os.path.join(ROOT_PATH, RS_PATH, "pc/")
+PC_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "pc/")
 ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
 #LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
@@ -42,7 +43,8 @@ def create_folders():
         os.mkdir(os.path.join(ROOT_PATH, JAI_PATH))
         os.mkdir(RGB_PATH_JAI)
         os.mkdir(RGB_PATH_RS)
-        os.mkdir(PC_PATH)
+        os.mkdir(DEPTH_PATH_RS)
+        os.mkdir(PC_PATH_RS)
         os.mkdir(ANNOTATIONS_PATH_JAI)
         os.mkdir(ANNOTATIONS_PATH_RS)
     
@@ -58,20 +60,18 @@ class Viewer():
         self.species = []
         self.ids = []
         self.sides = []
-        self.saved = 0
-        self.RGB_saved = False
-
+        
+        self.saving = False
+        
         self.mode_color_dict = {"annotating" : (0, 0, 255),
                                 "dragging" : (0, 255, 255), 
                                 "correcting" : (255, 0, 0),
-                                "saved" : (0, 255, 0)}                                 
+                                "saving" : (0, 255, 0)}                                 
         self.mode = "annotating"
-        #self.color = (0, 0, 255) #BGR
         self.color = self.mode_color_dict[self.mode]
         self.dragging = False
         self.dragged_point_idx = None
 
-        #self.start_stream()
         self.start_keylistener()
         self.create_session_log()
         self.get_resized_dimension(scale_percent=50)
@@ -88,54 +88,37 @@ class Viewer():
     
     def on_press(self, key):
         try:
-            #print('alphanumeric key {0} pressed'.format(key.char))
-            if key.char == "s" and len(self.coordinates) != 0 and not self.saved:
-                self.saved = 1
-                #self.color = (0, 255, 0)
-                self.color = self.mode_color_dict["saved"]
+            if key.char == "s" and len(self.coordinates) != 0 and not self.saving:
+                self.saving = True
+                self.color = self.mode_color_dict["saving"]
                 self.save_data()
+                self.saving = False
+                self.color = self.mode_color_dict[self.mode]
                 
-            if not self.saved:
+            if not self.saving:
                 if key.char == "m":
                     if self.mode == "annotating":
                         self.mode = "dragging"
-                        #self.color = (0, 255, 255)
                         self.color = self.mode_color_dict[self.mode]
 
                     elif self.mode == "dragging":
                         self.dragging = False
                         self.mode = "correcting"
-                        #self.color = (255, 0, 0)
                         self.color = self.mode_color_dict[self.mode]
 
                     elif self.mode == "correcting":
                         self.mode = "annotating"
-                        #self.color = (0, 0, 255)
                         self.color = self.mode_color_dict[self.mode]
                 
-            if key.char == "z" and self.saved:
+            if key.char == "Z":
                 self.remove_last()
-                self.saved = 0
-                #self.color = (0, 0, 255)
-                self.color = self.mode_color_dict[self.mode]
-
-
-            if key.char == "r":
-                self.saved = 0
-                self.RGB_saved = False
-                #self.mode = "annotating"
-                #self.color = (0, 0, 255)
-                self.color = self.mode_color_dict[self.mode]
 
             if key.char == "R":
                 self.coordinates.clear()
                 self.species.clear()
                 self.ids.clear()
                 self.sides.clear()
-                self.saved = 0
-                self.RGB_saved = False
                 self.mode = "annotating"
-                #self.color = (0, 0, 255)
                 self.color = self.mode_color_dict[self.mode]
 
             if key.char == "q":
@@ -166,25 +149,19 @@ class Viewer():
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
             self.img_cv = self.jai_cam.Img
-
-    def retrieve_only_RGB(self):
-        if self.RGB_saved and self.jai_cam.GrabImage():
-            self.img_cv = self.jai_cam.Img
         
     def show(self):
         self.window_title = "jai"
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
         self.draw_annotations()
         cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
-        if self.saved:
-            cv.setMouseCallback(self.window_title, self.popup)
-        else:
-            if self.mode == "annotating": 
+        if self.mode == "annotating": 
                 cv.setMouseCallback(self.window_title, self.get)
-            elif self.mode == "dragging":
-                cv.setMouseCallback(self.window_title, self.drag)
-            elif self.mode == "correcting": 
-                cv.setMouseCallback(self.window_title, self.remove)
+        elif self.mode == "dragging":
+            cv.setMouseCallback(self.window_title, self.drag)
+        elif self.mode == "correcting": 
+            cv.setMouseCallback(self.window_title, self.remove)
+
         cv.imshow(self.window_title, self.scaled_img)
         self.update_log()
         
@@ -206,9 +183,7 @@ class Viewer():
                 self.log_entry += 1
 
     def drag(self, event, x, y, flags, param):
-        #print("self.dragging", self.dragging)
         if self.dragging:
-            #print("Updating the point")
             self.coordinates[self.dragged_point_idx] = (x, y)
 
             if event == cv.EVENT_LBUTTONUP:
@@ -236,11 +211,6 @@ class Viewer():
                     self.sides.pop(idx)
                     self.log_entry += 1
                     break
-    
-    def popup(self, event, x, y, flags, param):
-        if event == cv.EVENT_LBUTTONDOWN:
-            print("V: Remove fish and reset by pressing 'r' key.")
-            #messagebox.showerror("Error", "Remove fish and reset by pressing 'r' key.")
 
     def get_annotation(self):
         self.guiInstance = gui.AnnotationApp()
@@ -269,7 +239,7 @@ class Viewer():
         return True
 
     def save_data(self):
-        print("V: Timestamp ", datetime.now())
+        print("V: ========= Timestamp ", datetime.now())
         self.rs_cam.get_data()
         filename = self.get_filename(RGB_PATH_JAI)
         self.saved_files = []
@@ -290,14 +260,13 @@ class Viewer():
         self.saved_files.append(DEPTH_PATH_RS + filename + ".json")
         print("V: INTRINSICS saved ", DEPTH_PATH_RS + filename + ".json")
 
-        self.rs_cam.save_pointcloud(PC_PATH + filename + ".ply")
-        self.saved_files.append(PC_PATH + filename + ".ply")
-        print("V: POINTCLOUD saved", PC_PATH + filename + ".ply")
+        self.rs_cam.save_pointcloud(PC_PATH_RS + filename + ".ply")
+        self.saved_files.append(PC_PATH_RS + filename + ".ply")
+        print("V: POINTCLOUD saved", PC_PATH_RS + filename + ".ply")
 
         self.save_annotations(ANNOTATIONS_PATH_JAI + filename + ".csv")
         self.saved_files.append(ANNOTATIONS_PATH_JAI + filename + ".csv")
         print("V: ANNOTATIONS saved ", ANNOTATIONS_PATH_JAI + filename + ".csv")
-        self.RGB_saved = True
 
     def save_annotations(self, path):
         data = self.format_annotations()
@@ -321,7 +290,7 @@ class Viewer():
         return data_formated
 
     def remove_last(self):
-        print("V: Timestamp ", datetime.now())
+        print("V: ========= Timestamp ", datetime.now())
         for file in self.saved_files:
             os.remove(file)
             print("V: Removed ", file)
@@ -349,11 +318,8 @@ if __name__=="__main__":
     try:
         viewer.start_stream()
         while viewer.jai_cam.Streaming and viewer.rs_cam.Streaming:
-            #print("V: Jai GO FPS: %.2f" % viewer.jai_cam.FrameRate, " Bandwidth: %.2f" % viewer.jai_cam.BandWidth, " Mb/s", end='\r', flush=True)
-            if not viewer.saved:
+            if not viewer.saving:
                 viewer.retrieve_measures()
-            else:
-                viewer.retrieve_only_RGB()
             viewer.show()
             cv.waitKey(1)
         viewer.jai_cam.CloseAndDisconnect()

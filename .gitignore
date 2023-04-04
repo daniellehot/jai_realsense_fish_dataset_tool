@@ -215,3 +215,4 @@ pyrightconfig.json
 *.bmp
 *.raw
 *.tiff
+viewer/data/*

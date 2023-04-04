@@ -80,7 +80,7 @@ class RS_Camera():
         aligned_frames = self.align.process(self.pipeline.wait_for_frames())
         self.color_frame = aligned_frames.get_color_frame()
         self.img = np.asanyarray(self.color_frame.get_data())
-        print("RS: Receved image")     
+        #print("RS: Receved image")     
 
         intrinsics = self.profile.get_stream(rs.stream.color).as_video_stream_profile().get_intrinsics()
         self.intrinsics_dict = {
@@ -90,23 +90,23 @@ class RS_Camera():
             "cy" : intrinsics.ppy,
             "fx" : intrinsics.fx,
             "fy" : intrinsics.fy,
-            "distortion model" : "Inverse Brown Conrady",
+            "distortion model" : str(intrinsics.model),
             "distortion coefficients" : intrinsics.coeffs
         }
-        print("RS: Received intrinsics")
+        #print("RS: Received intrinsics")
         
         self.depth_frame = aligned_frames.get_depth_frame()
         self.depth_frame = self.threshold_f.process(self.depth_frame)
         self.depth_map = np.asanyarray(self.depth_frame.get_data())
         #self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
-        print("RS: Received depth map")
+        #print("RS: Received depth map")
 
         self.pointcloud = self.get_colored_pointcloud()
-        print("RS: Received pointcloud")
+        #print("RS: Received pointcloud")
 
 
     def get_colored_pointcloud(self):
-        print("RS: get_colored_pointcloud()")
+        #print("RS: get_colored_pointcloud()")
         pc = rs.pointcloud()
         pc.map_to(self.color_frame)
         points = rs.points()
