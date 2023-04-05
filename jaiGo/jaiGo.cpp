@@ -230,10 +230,10 @@ bool JaiGo::LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStrea
 {
     PvConfigurationReader lReader;
     // Load all the information into a reader.
-    cout << "JAI: Load information and configuration" << endl;
+    cout << "JAI: Loading configuration" << endl;
     lReader.Load( FILE_NAME );
 
-    cout << "JAI: Restore configuration for a device with the configuration name" << endl;
+    cout << "JAI: Restoring device configuration" << endl;
     PvResult lResult = lReader.Restore( DEVICE_CONFIGURATION_TAG, aDevice);
     if ( !lResult.IsOK() )
     {
@@ -241,7 +241,7 @@ bool JaiGo::LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStrea
         return false;
     }
 
-    cout << "JAI: Restore configuration for a stream with the configuration name" << endl;
+    cout << "JAI: Restoring stream configuration" << endl;
     lResult = lReader.Restore( STREAM_CONFIGURAITON_TAG, aStream);
     if ( !lResult.IsOK() )
     {
@@ -277,7 +277,7 @@ bool JaiGo::GrabImage()
     PvResult lOperationResult;
 
     // Retrieve next buffer
-    PvResult lResult = this->Pipeline->RetrieveNextBuffer( &lBuffer, 1000, &lOperationResult );
+    PvResult lResult = this->Pipeline->RetrieveNextBuffer( &lBuffer, 10, &lOperationResult );
     if ( lResult.IsOK() )
     {
         if ( lOperationResult.IsOK() )
@@ -319,7 +319,10 @@ bool JaiGo::GrabImage()
     else
     {
         // Retrieve buffer failure
-        cout <<"JAI: "<<lResult.GetCodeString().GetAscii() << "\r";
+        if (lResult != PvResult::Code::TIMEOUT)
+        {
+            cout <<"JAI: "<<lResult.GetCodeString().GetAscii() << endl;
+        }
     }
 
     return receivedImage;
