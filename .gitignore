@@ -216,3 +216,5 @@ pyrightconfig.json
 *.raw
 *.tiff
 viewer/data/*
+heatmap/data
+heatmap/*.zip
