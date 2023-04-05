@@ -8,3 +8,4 @@
 8. Stefan access to Niels Office
 9. Upload data from April 4 (see hard disk)
 10. Absolute paths
+11. Jai Go - set parameters instead of loading config file
