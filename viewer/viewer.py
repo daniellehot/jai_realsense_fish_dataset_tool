@@ -321,15 +321,25 @@ class Viewer():
        
 
 if __name__=="__main__":
+    import time
+
     create_folders()
     viewer = Viewer()
+    
     try:
         viewer.start_stream()
+        #durations = []
         while viewer.jai_cam.Streaming and viewer.rs_cam.Streaming:
+            #start = time.time()
             if not viewer.saving:
                 viewer.retrieve_measures()
             viewer.show()
             cv.waitKey(1)
+            #stop = time.time()
+            #durations.append(stop-start)
+            #print("V: Iteration duration", stop-start)
+        #avg = sum(durations)/len(durations)
+        #print("V: Average iteration duration", avg)
         viewer.jai_cam.CloseAndDisconnect()
         viewer.rs_cam.close()
 
