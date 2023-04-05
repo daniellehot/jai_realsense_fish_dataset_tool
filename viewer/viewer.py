@@ -1,27 +1,32 @@
 # Standard modules
 import cv2 as cv
-import os
 import math
 from pynput import keyboard
-#import numpy as np
-#from tkinter import messagebox
 import csv
 from datetime import datetime
-#import open3d as o3d
-#import time 
+
+import os
+HOME_PATH = os.path.expanduser('~')
 
 # Custom modules
 import sys
-sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/realsense")
+
+#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/realsense")
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/realsense"))
 import rs_camera
-sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/tkinter")
+
+#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/tkinter")
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/tkinter"))
 import tkinter_gui as gui
-sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/")
+
+#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/")
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
 
 ## PATH CONSTANTS ##
 ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
-ROOT_LOCAL = "/home/daniel/jai_realsense_fish_dataset_tool/viewer/data/"
+#ROOT_LOCAL = "/home/daniel/jai_realsense_fish_dataset_tool/viewer/data/"
+ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/data/")
 #ROOT_LOCAL = "data/"
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
 RS_PATH = "rs/"
@@ -167,9 +172,12 @@ class Viewer():
         
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
-            cv.circle(self.scaled_img, coordinate, 5, self.color, -1)
+            cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
             annotation = id + side + "-" + species
-            cv.putText(self.scaled_img, annotation, (coordinate[0]+5, coordinate[1]+5), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 2, cv.LINE_AA, False)
+            #Text border
+            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 10, cv.LINE_AA, False)
+            #Actual text
+            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 2, cv.LINE_AA, False)
 
     def get(self, event, x, y, flags, param):
         if event == cv.EVENT_LBUTTONDOWN:
@@ -195,7 +203,7 @@ class Viewer():
                 #print("Selecting point")
                 for coordinate in self.coordinates:
                     dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
-                    if dist < 20:
+                    if dist < 10:
                         self.dragging = True
                         self.dragged_point_idx =self.coordinates.index(coordinate) 
 
