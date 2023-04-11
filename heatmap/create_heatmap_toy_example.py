@@ -12,7 +12,7 @@ def create_img(_idx):
     
     number_of_squares = rnd.randint(2,10)
     for i in range(number_of_squares):
-        top, bottom = rnd.randint(360, 720), rnd.randint(360, 720)
+        top, bottom = rnd.randint(0, 720), rnd.randint(0, 720)
         left, right = rnd.randint(0, 1280), rnd.randint(0, 1280)
         if bottom > top:
             bottom, top = top, bottom
@@ -27,6 +27,9 @@ if __name__=="__main__":
     for i in range(100):
         images.append(create_img(_idx = i))
     img_sum = sum(images)
+    print("img_sum shape", np.shape(img_sum))
+    print("img_sum shape", img_sum)
+
     img_avg = np.array(img_sum/100, dtype=np.uint8)
     img_heatmap = cv.applyColorMap(img_avg, cv.COLORMAP_JET)
     print(img_heatmap[100, 100])
