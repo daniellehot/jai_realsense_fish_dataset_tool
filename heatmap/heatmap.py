@@ -1,43 +1,67 @@
 import cv2 as cv 
 import numpy as np
 import os
-import time 
-
 
 class Heatmap():
     def __init__(self, path):
         self.heatmap_file = os.path.join(path,"heatmap.png")
         self.sum_file = os.path.join(path,"sum.npy")
-        self.read_latest()
+        self.load()
 
-    def read_latest(self):
-        if os.path.exists(self.heatmap_file):
-            self.heatmap = cv.imread(os.path.join(self.heatmap_path, self.heatmap_file), cv.IMREAD_UNCHANGED)
-            self.img_sum = np.load(os.path.join(self.heatmap_path, self.sum_file))
+    def load(self):
+        if os.path.exists(self.heatmap_file) and os.path.exists(self.sum_file):
+            print("HEATMAP: Data found at", self.heatmap_file, "and", self.sum_file)
+            self.heatmap_img = cv.imread(self.heatmap_file, cv.IMREAD_UNCHANGED)
+            self.sum_img = np.load(self.sum_file)
         else:
-            self.heatmap, self.img_sum = None, None
+            print("HEATMAP: Data not found, initializing empty variables")
+            if not os.path.exists(self.heatmap_file):
+                print("HEATMAP: heatmap.png does not exist")
+            if not os.path.exists(self.sum_file):
+                print("HEATMAP: sum.npy does not exist")
+            self.heatmap_img, self.sum_img = None, None
 
-    def update_heatmap(self, image, number_of_files):
-        if self.heatmap.shape == image.shape:
-            if self.img_sum == None:
-                self.img_sum = image
-            else:
-                self.img_sum += image
-                
-            img_avg = np.asarray(
-                self.img_sum/number_of_files,
+    def update(self, image, number_of_files):
+        print("HEATMAP: Updating heatmap")
+        if self.heatmap_img is None:
+            self.sum_img = np.asarray(image, dtype=np.uint64)
+            avg_img = np.asarray(
+                self.sum_img,
                 dtype=np.uint8
             )
-            self.heatmap = cv.applyColorMap(img_avg, cv.COLORMAP_JET)
+            self.heatmap_img = cv.applyColorMap(avg_img, cv.COLORMAP_JET)
             self.save()
         else:
-            print("Heatmap and input image have different shapes. Exiting...")
-            exit()
+            if self.heatmap_img.shape == image.shape:
+                self.sum_img += np.asarray(image, dtype=np.uint64)
+                avg_img = np.asarray(
+                    self.sum_img/number_of_files,
+                    dtype=np.uint8
+                )
+                self.heatmap_img = cv.applyColorMap(avg_img, cv.COLORMAP_JET)
+                self.save()
+            else:
+                print("HEATMAP: Heatmap and input image have different shapes. Exiting...")
+                exit()
 
     def save(self):
-        cv.imwrite(self.heatmap_file, os.path.join(self.heatmap_path, self.heatmap_file))
-        np.save(os.path.join(self.heatmap_path, self.sum_file), self.img_sum)
+        print("HEATMAP: Saving heatmap data")
+        cv.imwrite(self.heatmap_file, self.heatmap_img)
+        np.save(self.sum_file, self.sum_img)
 
 
 if __name__=="__main__":
+    HEATMAP_PATH = "heatmap_data"
+    heatmap = Heatmap(HEATMAP_PATH)
+
     DATA_PATH = "data/jai/rgb"
+    images_paths = os.listdir(DATA_PATH)
+    
+    idx = 1
+    for image_path in images_paths:
+        print("Iteration", idx)
+        img = cv.imread(os.path.join(DATA_PATH, image_path))
+        heatmap.update(image=img, number_of_files=idx)
+        idx += 1 
+        if idx == 11:
+            break
