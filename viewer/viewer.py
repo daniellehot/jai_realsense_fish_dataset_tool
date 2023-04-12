@@ -23,23 +23,24 @@ import tkinter_gui as gui
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
 
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/heatmap"))
+import heatmap
+
 ## PATH CONSTANTS ##
 ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
-#ROOT_LOCAL = "/home/daniel/jai_realsense_fish_dataset_tool/viewer/data/"
 ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/data/")
-#ROOT_LOCAL = "data/"
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
+
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
-#TEST_PATH = ROOT_PATH + "test"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
 DEPTH_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "depth/")
 PC_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "pc/")
 ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
-#LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
-LOGS_PATH = os.path.join("logs/")
+LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
+HEATMAPS_PATH = os.path.join(ROOT_PATH, "heatmaps/")
 
 def create_folders():
     if not os.path.exists(ROOT_PATH):
@@ -52,9 +53,9 @@ def create_folders():
         os.mkdir(PC_PATH_RS)
         os.mkdir(ANNOTATIONS_PATH_JAI)
         os.mkdir(ANNOTATIONS_PATH_RS)
-    
-    if not os.path.exists(LOGS_PATH):
         os.mkdir(LOGS_PATH)
+        os.mkdir(HEATMAPS_PATH)
+
 
 class Viewer():
     def __init__(self):
@@ -80,6 +81,9 @@ class Viewer():
         self.start_keylistener()
         self.create_session_log()
         self.get_resized_dimension(scale_percent=50)
+
+        self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
+        self.show_heatmap = False
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -114,6 +118,12 @@ class Viewer():
                     elif self.mode == "correcting":
                         self.mode = "annotating"
                         self.color = self.mode_color_dict[self.mode]
+                
+                if key.char == "h":
+                    if self.show_heatmap:
+                        self.show_heatmap = False
+                    else:
+                        self.show_heatmap = True
                 
             if key.char == "Z":
                 self.remove_last()
@@ -158,6 +168,8 @@ class Viewer():
     def show(self):
         self.window_title = "jai"
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
+        if self.show_heatmap:
+            self.scaled_img = cv.addWeighted(self.scaled_img, 0.5, self.heatmapper.heatmap_img_colored, 0.5, 0.0)
         self.draw_annotations()
         cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
         if self.mode == "annotating": 
@@ -249,8 +261,12 @@ class Viewer():
     def save_data(self):
         print("V: ========= Timestamp ", datetime.now())
         self.rs_cam.get_data()
+
         filename = self.get_filename(RGB_PATH_JAI)
         self.saved_files = []
+
+        self.heatmapper.update(self.img_cv)
+        self.heatmapper.save(filename)
 
         self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
