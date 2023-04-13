@@ -165,15 +165,22 @@ class RS_Camera():
 
 
 if __name__=="__main__":
+    import os
+    TEST_PATH = "test_data"
+
     realsense = RS_Camera()
     realsense.start_stream()
     realsense.get_data()
-    realsense.save_image("test_data/test.png")
-    realsense.save_pointcloud("test_data/test.ply")
-    realsense.save_depth_map("test_data/test_depth.png")
-    realsense.save_intrinsics("test_data/test_3.json")
 
-    with open('test_data/test_3.json', 'r') as f:
+    if not os.path.exists(TEST_PATH):
+        os.mkdir(TEST_PATH)
+
+    realsense.save_image(os.path.join(TEST_PATH, "test_img.png"))
+    realsense.save_pointcloud(os.path.join(TEST_PATH, "test_pc.ply"))
+    realsense.save_depth_map(os.path.join(TEST_PATH, "test_depth.png"))
+    realsense.save_intrinsics(os.path.join(TEST_PATH, "test_depth.json"))
+
+    with open(os.path.join(TEST_PATH, "test_depth.json"), 'r') as f:
         data = json.load(f)
     print(data["cx"])
         

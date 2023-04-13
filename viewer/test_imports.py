@@ -22,3 +22,6 @@ import tkinter_gui as gui
 #sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/")
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
+
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/heatmap"))
+import heatmap
