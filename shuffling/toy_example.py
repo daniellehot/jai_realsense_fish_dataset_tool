@@ -13,14 +13,12 @@ COLOR = (0, 0, 255)
 class Toy():
     def __init__(self):
         self.run = True
-
-        self.cx = IMG_WIDTH/2
-        self.cy = IMG_HEIGHT/2
         
-        self.arrow_length = 40
+        
         self.bbox_size_height = 50
-        self.bbox_size_width = 75
-        
+        self.bbox_size_width = 150
+        self.arrow_length = self.bbox_size_width
+
         self.coords = [
             (300, 200),
             (600, 400),
@@ -80,14 +78,7 @@ class Toy():
         self.image = np.ones((IMG_HEIGHT, IMG_WIDTH, IMG_CHANNELS))*255
         self.draw()
         cv.imshow("image", self.image)
-
-
-    def draw(self):
-        print("coords", self.coords)
-        print("bboxes", self.bboxes)
-        print("orientaion", self.orientation_vectors)
-        print("rotation", self.rotation)
-        print("===========0")
+        cv.waitKey(1)
         for (coord, orientation, bbox) in zip(self.coords, self.orientation_vectors, self.bboxes):
             #Annotation center
             cv.circle(self.image, coord, 20, COLOR, 2)
@@ -100,22 +91,62 @@ class Toy():
             cv.line(self.image, bbox[3], bbox[0], COLOR, 3)
 
 
-    def shuffle(self):
-        for i in range(len(self.coords)):
-            self.coords[i] = (
-                rnd.randint(0, IMG_WIDTH),
-                rnd.randint(0, IMG_HEIGHT)
-            )
-            
-            self.rotation = rnd.uniform(-math.pi, math.pi)
-            print("********")
-            print(self.rotation)
-            print(math.cos(self.rotation))
-            print(math.sin(self.rotation))
-            print("********")
+    def shuffle(self, invalidated = None):
+        if invalidated is None:
+            for i in range(len(self.coords)):
+                self.coords[i] = (
+                    rnd.randint(0, IMG_WIDTH),
+                    rnd.randint(0, IMG_HEIGHT)
+                )
+                
+                self.rotation = rnd.uniform(-math.pi, math.pi)
+
+        else:
+            for idx in invalidated:
+                self.coords[idx] = (
+                    rnd.randint(0, IMG_WIDTH),
+                    rnd.randint(0, IMG_HEIGHT)
+                )
+                self.rotation = rnd.uniform(-math.pi, math.pi)
 
         self.orientation_vectors = self.generate_orientation_vectors()
         self.bboxes = self.generate_bounding_boxes()
+
+        self.validate_coordinates()
+        #print("Valid:", valid, idx)
+
+
+
+    def validate_coordinates(self):
+        valid = True
+        coords_to_fix = []
+        for i in range(len(self.bboxes)):
+            for corner in self.bboxes[i]:
+                if corner[0] < 0 or corner[0] > IMG_WIDTH:
+                    coords_to_fix.append(i)
+                    valid = False
+                    break
+
+                if corner[1] < 0 or corner[1] > IMG_HEIGHT:
+                    coords_to_fix.append(i)
+                    valid = False
+                    break
+                
+        for i in range( len(self.bboxes) ):
+            for j in range( i, len(self.bboxes) ):
+                if self.bboxes[i] == self.bboxes[j]:
+                    continue
+                elif i or j in coords_to_fix:
+                    continue
+                else:
+                    continue
+                    #TODO Computing intersection of non-axis aligned bounding boxes is fairly difficult (see computing polygon intersections) 
+
+        
+        print("Valid", valid)
+        if not valid:
+            self.shuffle(invalidated = coords_to_fix)
+        #return valid, coords_to_fix
 
 
     def rotate_point(self, point, rot, rot_point):
@@ -142,11 +173,28 @@ class Toy():
         origin_to_rot_point[1,2] = -rot_point[1]
 
         rot_mat_around_point = rot_point_to_origin @ rot_mat @ origin_to_rot_point
-        print(rot_mat_around_point)
+
         rotated_point = (rot_mat_around_point @ point).astype(dtype=np.int32)
         rotated_point = rotated_point.T 
         return (rotated_point[0,0], rotated_point[0,1]) 
+    
 
+    def drag(self, event, x, y, flags, param):
+        if self.dragging:
+            self.coordinates[self.dragged_point_idx] = (x, y)
+
+            if event == cv.EVENT_LBUTTONUP:
+                #print("Stopped updating the point")
+                self.dragging = False
+                self.dragged_point_idx = None
+        else:
+            if event == cv.EVENT_LBUTTONDOWN:
+                #print("Selecting point")
+                for coordinate in self.coordinates:
+                    dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
+                    if dist < 10:
+                        self.dragging = True
+                        self.dragged_point_idx =self.coordinates.index(coordinate) 
 
 
 if __name__=="__main__":
@@ -154,4 +202,4 @@ if __name__=="__main__":
 
     while toy.run:
         toy.show()
-        cv.waitKey(1)
+        
