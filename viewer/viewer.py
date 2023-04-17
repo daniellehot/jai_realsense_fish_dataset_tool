@@ -26,6 +26,9 @@ import pyJaiGo
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/heatmap"))
 import heatmap
 
+sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/shuffling"))
+import shuffler
+
 ## PATH CONSTANTS ##
 ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
 ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/data/")
@@ -84,6 +87,8 @@ class Viewer():
 
         self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
         self.show_heatmap = False
+
+        self.shuffler = shuffler.Shuffler(self.resized_dim)
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()

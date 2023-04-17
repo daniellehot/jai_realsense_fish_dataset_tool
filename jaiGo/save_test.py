@@ -3,19 +3,24 @@ import numpy as np
 import cv2
 import time 
 
-camera = jai.JaiGo()
-camera.FindAndConnect()
-if camera.Connected:
-    camera.StartStream()
+pixel_formats = ["BayerRG8", "BayerRG10", "BayerRG10p", "BayerRG12", "BayerRG12p"]
+image_formats = [".tiff", ".bmp"]
 
-for i in range(1):
-    to_save = ["images/img_" + str(i) + ".bmp",
-               "images/img_" + str(i) + ".raw",
-               "images/img_" + str(i) + ".tiff"]
-    if camera.GrabImage():
-       camera.SaveImage(to_save[0])
-       camera.SaveImage(to_save[1])
-       camera.SaveImage(to_save[2])
-camera.CloseAndDisconnect()
+for pixel_format in pixel_formats:
+    camera = jai.JaiGo()
+    camera.FindAndConnect()
+    if camera.Connected:
+        camera.SetPixelFormat(pixel_format)
+        camera.StartStream()
+        while camera.Streaming:
+            if camera.GrabImage():
+                print("Saving images")
+                path = "images/img_" + pixel_format
+                camera.SaveImage(path + ".tiff")
+                #camera.SaveImage(path + ".bmp")
+                break
+    camera.CloseAndDisconnect()
+    print("Sleeping for 5 seconds")
+    time.sleep(5)
 
 

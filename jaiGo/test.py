@@ -8,6 +8,7 @@ camera = jai.JaiGo()
 durations = []
 camera.FindAndConnect()
 if camera.Connected:
+    camera.SetPixelFormat("BayerRG12")
     camera.StartStream()
     i = 0
     while camera.Streaming:
@@ -22,7 +23,6 @@ if camera.Connected:
             cv2.waitKey(1)
             stop = time.time()
             durations.append(stop-start)
-            
         if i == 100:
             camera.Streaming = False
 duration_avg = np.average(np.asarray(durations))

@@ -1,5 +1,3 @@
-#include <string>
-
 #include <PvSampleUtils.h>
 #include <PvDevice.h>
 #include <PvDeviceGEV.h>
@@ -11,6 +9,8 @@
 #include <PvPipeline.h>
 #include <PvConfigurationReader.h>
 #include <PvBufferWriter.h>
+#include <PvGenParameterArray.h>
+#include <PvGenParameter.h>
 
 #include "opencv2/opencv.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -28,6 +28,7 @@ class JaiGo {
     private:
         PvString ConnectionID;
         PvDevice *Device = NULL;
+        PvGenParameterArray *DevParameters = NULL;
         PvStream *Stream = NULL;
         PvPipeline *Pipeline = NULL;
         PvBuffer *ImgBuffer = NULL;
@@ -45,6 +46,8 @@ class JaiGo {
         PvStream *OpenStream( const PvString &aConnectionID );
         bool LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStream);
         PvPipeline *CreatePipeline( PvDevice *aDevice, PvStream *aStream );
+
+        cv::Mat GetCvImage();
 
         //To convert cv::Mat to numpy array
         py::dtype determine_np_dtype(int depth);
@@ -72,6 +75,8 @@ class JaiGo {
         bool GrabImage();
         bool SaveImage(const string path);
         void CloseAndDisconnect();
+
+        bool SetPixelFormat(const string format);
 };
 
 void JaiGo::FindAndConnect()
@@ -86,6 +91,7 @@ void JaiGo::FindAndConnect()
             cout<<"JAI: Connection and Device Acquired"<<endl;
             this->ConnectionID = lConnectionID;
             this->Device = lDevice;
+            this->DevParameters = lDevice->GetParameters();
             this->Connected = true;
         }
     }
@@ -270,6 +276,34 @@ PvPipeline* JaiGo::CreatePipeline( PvDevice *aDevice, PvStream *aStream )
     return lPipeline;
 }
 
+cv::Mat JaiGo::GetCvImage()
+{
+    PvGenParameter *lParameter = this->DevParameters->Get( "PixelFormat" );
+    PvGenEnum *lPixelFormatParameter = dynamic_cast<PvGenEnum *>( lParameter );
+    PvString pixelFormat;
+    PvResult lResult = lPixelFormatParameter->GetValue(pixelFormat);
+    cv::Mat cvImg(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
+    
+    if (lResult.IsOK())
+    {
+        cout << "Pixel format" << pixelFormat.GetAscii() << endl;
+
+        if ( strcmp( pixelFormat.GetAscii(), "BayerRG8" ) == 0 )
+        {
+            cv::Mat cvMat = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8U, this->ImgBuffer->GetDataPointer());
+            cv::cvtColor(cvMat, cvImg, cv::COLOR_BayerRG2RGB);
+        } 
+        else 
+        {
+            cv::Mat img16Bit = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_16U, this->ImgBuffer->GetDataPointer());
+            cv::Mat img8Bit;
+            img16Bit.convertTo(img8Bit, CV_8U, 0.0625);
+            cv::cvtColor(img8Bit, cvImg, cv::COLOR_BayerRG2RGB);   
+        }
+    }
+    return cvImg;
+}
+
 bool JaiGo::GrabImage()
 { 
     bool receivedImage = false;
@@ -294,13 +328,12 @@ bool JaiGo::GrabImage()
             {
                 this->ImgWidth = lBuffer->GetImage()->GetWidth();
                 this->ImgHeight = lBuffer->GetImage()->GetHeight();
-                
-                cv::Mat cvImg = cv::Mat(lBuffer->GetImage()->GetHeight(), lBuffer->GetImage()->GetWidth(), CV_8U, lBuffer->GetDataPointer());
-                cv::Mat cvColorImg;
-                cvtColor(cvImg, cvColorImg, cv::COLOR_BayerRG2RGB);
+                this->ImgBuffer = lBuffer;
+
+                cv::Mat cvColorImg = JaiGo::GetCvImage();
                 this->npImg = JaiGo::mat_to_nparray(cvColorImg);
                 receivedImage = true;
-                this->ImgBuffer = lBuffer;
+                
             } 
             else
             {
@@ -332,6 +365,13 @@ bool JaiGo::SaveImage(const string path)
 {
     PvBufferWriter ImgWriter;
     PvResult lResult;
+    
+    cout << "JAI: Saving image to " << path << endl;
+    
+    if (this->ImgBuffer == NULL)
+    {
+        cout << "JAI: ImgBuffer is NULL" << endl;
+    }
 
     if (path.find("bmp") != string::npos)
     {
@@ -397,6 +437,28 @@ void JaiGo::CloseAndDisconnect()
     }
 }
 
+bool JaiGo::SetPixelFormat(const string format)
+{
+    PvGenParameter *lParameter = this->DevParameters->Get( "PixelFormat" );
+    PvGenEnum *lPixelFormatParameter = dynamic_cast<PvGenEnum *>( lParameter );
+    
+    if ( lPixelFormatParameter == NULL )
+    {
+        cout << "    JAI ERROR: Unable to get the pixel format parameter." << endl;
+        return false;
+    }
+
+    PvResult lResult = lPixelFormatParameter->SetValue( format.c_str() );
+    if ( lResult.IsFailure() )
+    {
+        cout << "    JAI ERROR: Error changing pixel format on device." << endl;
+        return false;
+    }
+    
+    cout << "JAI: Changed pixel format to " << format << endl;
+    return true;
+}
+
 py::dtype JaiGo::determine_np_dtype(int depth)
 {
     switch (depth) {
@@ -459,6 +521,8 @@ PYBIND11_MODULE(pyJaiGo, m) {
         .def("GrabImage", &JaiGo::GrabImage)
         .def("SaveImage", &JaiGo::SaveImage)
         .def("CloseAndDisconnect", &JaiGo::CloseAndDisconnect)
+
+        .def("SetPixelFormat", &JaiGo::SetPixelFormat)
 
         .def_readwrite("Streaming", &JaiGo::Streaming)
         .def_readwrite("LoadCustomCameraConfiguration", &JaiGo::LoadCustomCameraConfiguration)
