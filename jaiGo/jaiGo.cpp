@@ -286,14 +286,16 @@ cv::Mat JaiGo::GetCvImage()
     
     if (lResult.IsOK())
     {
-        cout << "Pixel format" << pixelFormat.GetAscii() << endl;
-
         if ( strcmp( pixelFormat.GetAscii(), "BayerRG8" ) == 0 )
         {
             cv::Mat cvMat = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8U, this->ImgBuffer->GetDataPointer());
             cv::cvtColor(cvMat, cvImg, cv::COLOR_BayerRG2RGB);
         } 
-        else 
+        else if ( strcmp( pixelFormat.GetAscii(), "BayerRG10p" ) == 0 || strcmp( pixelFormat.GetAscii(), "BayerRG12p" ) == 0 )
+        {
+            cout << "JAI: Selected pixel format cannot be visualized. Use BayerRG8, BayerRG10, or BayerRG12. Current format is " << pixelFormat.GetAscii() << endl;
+        }
+        else
         {
             cv::Mat img16Bit = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_16U, this->ImgBuffer->GetDataPointer());
             cv::Mat img8Bit;
