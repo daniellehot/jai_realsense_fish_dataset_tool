@@ -11,17 +11,18 @@ class Shuffler():
         self.img_width = img_dimensions[0]
         self.img_channels = 3
 
+        self.coordinates = []
         self.bboxes = []
         self.orientation_vectors = []
 
 
     def generate_random_rotation(self):
-        self.rotation = self.rotation = rnd.uniform(-math.pi, math.pi)
+        self.rotation = rnd.uniform(-math.pi, math.pi)
 
 
     def generate_bounding_boxes(self):
         bounding_boxes = []
-        for coord in self.coords:
+        for coord in self.coordinates:
             y_min = coord[1] - self.bbox_size_height
             y_max = coord[1] + self.bbox_size_height
             x_min = coord[0] - self.bbox_size_width
@@ -34,40 +35,42 @@ class Shuffler():
                 self.rotate_point( (x_max, y_min), self.rotation, coord )
                 ]
             bounding_boxes.append(bbox)
-        return bounding_boxes
+        self.bboxes = bounding_boxes
+        #return bounding_boxes
     
 
     def generate_orientation_vectors(self):
         orientation_vectors = []
-        for coord in self.coords:
+        for coord in self.coordinates:
             vector = (
                 int( coord[0] + self.arrow_length*math.cos(self.rotation) ),
                 int( coord[1] + self.arrow_length*math.sin(self.rotation) )
             )
             orientation_vectors.append(vector)
-        return orientation_vectors
+        self.orientation_vectors = orientation_vectors
+        #return orientation_vectors
 
 
-    def shuffle(self, coords, invalidated = None):
+    def shuffle(self, invalidated = None):
         if invalidated is None:
-            for i in range(len(coords)):
-                self.coords[i] = (
+            self.generate_random_rotation()
+            for i in range(len(self.coordinates)):
+                self.coordinates[i] = (
                     rnd.randint(0, self.img_width),
                     rnd.randint(0, self.img_height)
                 )  
         else:
             for idx in invalidated:
-                self.coords[idx] = (
+                self.coordinates[idx] = (
                     rnd.randint(0, self.img_width),
                     rnd.randint(0, self.img_height)
                 )
-                self.rotation = rnd.uniform(-math.pi, math.pi)
 
-        self.orientation_vectors = self.generate_orientation_vectors()
-        self.bboxes = self.generate_bounding_boxes()
-
+        #self.orientation_vectors = self.generate_orientation_vectors()
+        #self.bboxes = self.generate_bounding_boxes()
+        self.generate_orientation_vectors()
+        self.generate_bounding_boxes()
         self.validate_coordinates()
-
 
 
     def validate_coordinates(self):
@@ -86,6 +89,7 @@ class Shuffler():
                     break
 
         if not valid:
+            #print("Not valid, reshuffling for", coords_to_fix)
             self.shuffle(invalidated = coords_to_fix)
 
 
@@ -117,3 +121,28 @@ class Shuffler():
         rotated_point = (rot_mat_around_point @ point).astype(dtype=np.int32)
         rotated_point = rotated_point.T 
         return (rotated_point[0,0], rotated_point[0,1]) 
+    
+    def clear(self):
+        self.coordinates.clear()
+        self.bboxes.clear()
+        self.orientation_vectors.clear()
+
+
+if __name__=="__main__":
+    coordinates = [
+        (400, 200),
+        (800, 400),
+        (1200, 600),
+        (1600, 800),
+    ]
+    
+    shuffler = Shuffler( img_dimensions=( 1920, 1080 ) )
+    shuffler.coordinates = coordinates
+
+    for i in range(10):
+        print("Iteration", i)
+        shuffler.shuffle()
+        print("Shuffler.coordinates", shuffler.coordinates)
+        print("Shuffler.bboxes", shuffler.bboxes)
+        print("Shuffler.orientation_vectors", shuffler.orientation_vectors)
+    print("Done")

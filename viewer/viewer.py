@@ -4,6 +4,7 @@ import math
 from pynput import keyboard
 import csv
 from datetime import datetime
+import copy
 
 import os
 HOME_PATH = os.path.expanduser('~')
@@ -89,6 +90,7 @@ class Viewer():
         self.show_heatmap = False
 
         self.shuffler = shuffler.Shuffler(self.resized_dim)
+        self.shuffled = False
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -102,7 +104,8 @@ class Viewer():
     
     def on_press(self, key):
         try:
-            if key.char == "s" and len(self.coordinates) != 0 and not self.saving:
+            #Only save when there are annotations, you are not saving right now, and you have shuffled fish accordingly
+            if key.char == "s" and len(self.coordinates) != 0 and not self.saving and not self.shuffled:
                 self.saving = True
                 self.color = self.mode_color_dict["saving"]
                 self.save_data()
@@ -130,6 +133,26 @@ class Viewer():
                     else:
                         self.show_heatmap = True
                 
+                if key.char == "g" and len(self.coordinates) != 0:
+                    self.shuffler.coordinates = copy.deepcopy(self.coordinates)
+                    self.shuffler.shuffle()
+                    self.shuffler_idx = 0
+                    self.shuffled = True
+                    print("V: Annotations were shuffled. Press 'j' for previous, 'k' for next.")
+
+                if key.char == "j" and self.shuffled:
+                    self.shuffler_idx -= 1
+                    if self.shuffler_idx < 0:
+                        self.shuffler_idx = 0
+
+                if key.char == "k" and self.shuffled:
+                    self.shuffler_idx += 1
+                    if self.shuffler_idx == len(self.coordinates):
+                        print("V: All annotations were shuffled")
+                        self.coordinates = copy.deepcopy(self.shuffler.coordinates)
+                        self.shuffler.clear()
+                        self.shuffled = False
+
             if key.char == "Z":
                 self.remove_last()
 
@@ -140,6 +163,7 @@ class Viewer():
                 self.sides.clear()
                 self.mode = "annotating"
                 self.color = self.mode_color_dict[self.mode]
+                self.shuffled = False
 
             if key.char == "q":
                 self.stop_stream()
@@ -173,20 +197,46 @@ class Viewer():
     def show(self):
         self.window_title = "jai"
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
+        cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
+
         if self.show_heatmap:
             self.scaled_img = cv.addWeighted(self.scaled_img, 0.5, self.heatmapper.heatmap_img_colored, 0.5, 0.0)
-        self.draw_annotations()
-        cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
-        if self.mode == "annotating": 
-                cv.setMouseCallback(self.window_title, self.get)
-        elif self.mode == "dragging":
-            cv.setMouseCallback(self.window_title, self.drag)
-        elif self.mode == "correcting": 
-            cv.setMouseCallback(self.window_title, self.remove)
+
+        if self.shuffled:
+            cv.setMouseCallback(self.window_title, self.drag_shuffled)
+            self.draw_shuffled()
+
+        else:
+            self.draw_annotations()
+       
+            if self.mode == "annotating": 
+                    cv.setMouseCallback(self.window_title, self.get)
+            elif self.mode == "dragging":
+                cv.setMouseCallback(self.window_title, self.drag)
+            elif self.mode == "correcting": 
+                cv.setMouseCallback(self.window_title, self.remove)
 
         cv.imshow(self.window_title, self.scaled_img)
         self.update_log()
-        
+
+    def draw_shuffled(self):
+        coordinate_now = self.coordinates[self.shuffler_idx]
+        coordinate_shuffled = self.shuffler.coordinates[self.shuffler_idx]
+        coordinate_shuffled_orientation = self.shuffler.orientation_vectors[self.shuffler_idx]
+
+        #Original annotation
+        annotation = self.ids[self.shuffler_idx] + self.sides[self.shuffler_idx] + "-" + self.species[self.shuffler_idx]
+        cv.circle(self.scaled_img, coordinate_now, 10, self.color, 2)
+        cv.putText(self.scaled_img, annotation, (coordinate_now[0]+15, coordinate_now[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 10, cv.LINE_AA, False)
+        cv.putText(self.scaled_img, annotation, (coordinate_now[0]+15, coordinate_now[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 2, cv.LINE_AA, False)
+
+        #New annotation
+        cv.circle(self.scaled_img, coordinate_shuffled, 10, self.color, 2)
+        cv.arrowedLine(self.scaled_img,coordinate_shuffled, coordinate_shuffled_orientation, self.color, 2)
+
+        #Arrow between annotations
+        cv.line(self.scaled_img,coordinate_now, coordinate_shuffled, self.color, 2)
+              
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
             cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
@@ -236,6 +286,20 @@ class Viewer():
                     self.sides.pop(idx)
                     self.log_entry += 1
                     break
+
+    def drag_shuffled(self, event, x, y, flags, param):
+        coordinate_shuffled = self.shuffler.coordinates[self.shuffler_idx]
+        if self.dragging:
+            self.shuffler.coordinates[self.shuffler_idx] = (x, y)
+            self.shuffler.generate_orientation_vectors()
+            self.shuffler.generate_bounding_boxes()
+            if event == cv.EVENT_LBUTTONUP:
+                self.dragging = False
+        else:
+            if event == cv.EVENT_LBUTTONDOWN:
+                dist = math.sqrt(math.pow(x-coordinate_shuffled[0], 2) + math.pow(y-coordinate_shuffled[1],2))
+                if dist < 10:
+                    self.dragging = True
 
     def get_annotation(self):
         self.guiInstance = gui.AnnotationApp()
