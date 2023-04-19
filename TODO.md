@@ -6,6 +6,12 @@ Shuffle annotations
 	New orientations for each coordinate
 	Adjust orientation vector's  end point and length
 	Keep previous tracks in memory? 
+	Reverse order for every second run? Could this help in any way?
+
+Record video of every session? 
+
+Print hotkeys 
+	Add hotkey for smaller font/drawing sizes (easier to read with many fishes on the table)
 
 Support Questions
 	Analog gain vs Digital gain
