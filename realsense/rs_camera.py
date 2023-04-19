@@ -50,7 +50,8 @@ class RS_Camera():
                 sensor.set_option(rs.option.laser_power, 360.0)
                 sensor.set_option(rs.option.emitter_enabled, 1)
             if sensor.is_color_sensor():
-                sensor.set_option(rs.option.exposure, 3000.0)
+                #sensor.set_option(rs.option.enable_auto_exposure, True) 
+                sensor.set_option(rs.option.exposure, 250.0)
                 sensor.set_option(rs.option.gain, 0.0)
                 sensor.set_option(rs.option.brightness, 0.0)
                 sensor.set_option(rs.option.contrast, 50.0)
@@ -58,7 +59,7 @@ class RS_Camera():
                 sensor.set_option(rs.option.hue, 0.0)
                 sensor.set_option(rs.option.saturation, 50.0)
                 sensor.set_option(rs.option.sharpness, 100.0)
-                sensor.set_option(rs.option.white_balance, 4200.0)
+                sensor.set_option(rs.option.white_balance, 3200.0)
 
     def get_data(self):
         ''' In case we want to use more filtering 

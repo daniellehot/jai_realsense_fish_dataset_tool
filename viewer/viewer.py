@@ -165,7 +165,7 @@ class Viewer():
                 self.color = self.mode_color_dict[self.mode]
                 self.shuffled = False
 
-            if key.char == "q":
+            if key.char == "Q":
                 self.stop_stream()
                 cv.destroyAllWindows()
         except AttributeError:
@@ -337,7 +337,9 @@ class Viewer():
         self.heatmapper.update(self.img_cv)
         self.heatmapper.save(filename)
 
-        self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
+        #self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
+        cv.imwrite(RGB_PATH_JAI + filename + ".png", self.img_cv,[cv.IMWRITE_PNG_COMPRESSION, 0])
+        cv.imwrite(RGB_PATH_JAI + filename + "_annotated.png", self.scaled_img,[cv.IMWRITE_PNG_COMPRESSION, 0])
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
         

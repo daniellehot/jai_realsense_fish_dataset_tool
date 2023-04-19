@@ -14,9 +14,10 @@ import viewer
 
 
 def get_annotations(_path):
-    annotation_path = _path.replace(".png", ".csv")
-    annotation_path = annotation_path.replace("rgb", "annotations")
-    print("Reading annotation file", annotation_path)
+    #annotation_path = _path.replace(".png", ".csv")
+    #annotation_path = annotation_path.replace("rgb", "annotations")
+    #print("Reading annotation file", annotation_path)
+    annotation_path = "/home/vap/jai_realsense_fish_dataset_tool/viewer/data/jai/annotations/00002.csv"
     _annotations = None
     with open(annotation_path, mode='r') as csv_file:
         csv_reader = csv.DictReader(csv_file, delimiter = ",")
@@ -40,7 +41,9 @@ if __name__=="__main__":
     argParser.add_argument("-i", "--input", type=str, help="Path to the image")
 
     args = argParser.parse_args()
-    img = cv.imread(args.input)
+    #img = cv.imread(args.input)
+    img = cv.imread("00002.png")
+    
     annotations = get_annotations(args.input)
     annotate_image(img, annotations)
     cv.imwrite("annotated.png", img)
