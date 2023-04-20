@@ -20,7 +20,7 @@
 namespace py = pybind11;
 
 #define BUFFER_COUNT ( 16 )
-#define FILE_NAME ( "/home/daniel/jaiGO/myJaiStream/config.pvxml" )
+#define FILE_NAME ( "/home/vap/jai_realsense_fish_dataset_tool/jaiGo/writeReadConfiguration/test_config.pvxml" )
 #define DEVICE_CONFIGURATION_TAG ( "DeviceConfiguration" )
 #define STREAM_CONFIGURAITON_TAG ( "StreamConfiguration" )
 
@@ -66,7 +66,7 @@ class JaiGo {
         //Image
         int ImgWidth;
         int ImgHeight;
-        //cv::Mat Img;
+        cv::Mat Img;
         py::array npImg;
 
         void FindAndConnect();
@@ -303,6 +303,8 @@ cv::Mat JaiGo::GetCvImage()
             cv::cvtColor(img8Bit, cvImg, cv::COLOR_BayerRG2RGB);   
         }
     }
+    this->Img = cvImg;
+
     return cvImg;
 }
 
@@ -331,7 +333,6 @@ bool JaiGo::GrabImage()
                 this->ImgWidth = lBuffer->GetImage()->GetWidth();
                 this->ImgHeight = lBuffer->GetImage()->GetHeight();
                 this->ImgBuffer = lBuffer;
-
                 cv::Mat cvColorImg = JaiGo::GetCvImage();
                 this->npImg = JaiGo::mat_to_nparray(cvColorImg);
                 receivedImage = true;
@@ -366,34 +367,89 @@ bool JaiGo::GrabImage()
 bool JaiGo::SaveImage(const string path)
 {
     PvBufferWriter ImgWriter;
-    PvResult lResult;
+    PvBuffer *lBuffer = NULL;
+    PvResult lOperationResult;
+    PvResult lPipelineResult = this->Pipeline->RetrieveNextBuffer( &lBuffer, 1000, &lOperationResult );
+
+    cout << "lPipelineResult " << lPipelineResult.GetCodeString().GetAscii() << endl;
+    cout << "lOperationResult " << lOperationResult.GetCodeString().GetAscii() << endl;
     
-    cout << "JAI: Saving image to " << path << endl;
-    
-    if (this->ImgBuffer == NULL)
+    if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
     {
-        cout << "JAI: ImgBuffer is NULL" << endl;
+        PvResult lResult;
+        cout << "==============" << endl;
+        cout << "JAI: Saving image to " << path << endl;
+        if (path.find("bmp") != string::npos)
+        {
+            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatBMP);
+        }
+        else if (path.find("tiff") != string::npos)
+        {
+            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatTIFF);
+        }
+        else if (path.find("raw") != string::npos)
+        {
+            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatRaw);
+        }
+
+        if ( lResult.IsFailure() ) 
+        {
+            cout <<"    JAI ERROR: Could not save the image."<<endl;
+            cout <<"    JAI ERROR: "<<lResult.GetCodeString().GetAscii()<<endl;
+            cout <<"    JAI ERROR: "<<lResult.GetDescription().GetAscii()<<endl;
+
+            if (lBuffer->GetImage()->IsFullLineMissing())
+            {
+                cout << "FullLineIsMissing TRUE" << endl;
+            } 
+            else
+            {
+                cout << "FullLineIsMissing FALSE" << endl;
+            }
+
+            if (lBuffer->GetImage()->IsPartialLineMissing()) 
+            {
+                cout << "PartialLineMissing TRUE" << endl;
+            } 
+            else
+            {
+                cout << "PartialLineMissing FALSE" << endl;
+            }
+            
+            if (lBuffer->GetImage()->IsDataOverrun()) 
+            {
+                cout << "DataOverrun TRUE" << endl;
+            }
+            else
+            {
+                cout << "DataOverrun FALSE" << endl;
+            }
+
+            if (lBuffer->IsHeaderValid())
+            {
+                cout << "ValidHeader TRUE" << endl;
+            }
+            else
+            {
+                cout << "ValidHeader FALSE" << endl;
+            }
+
+            if (lBuffer->IsTrailerValid())
+            {
+                cout << "ValidTrailer TRUE" << endl;
+            }
+            else
+            {
+                cout << "ValidTrailer FALSE" << endl;
+            }
+            
+            return false;
+        }
+    
+        this->Pipeline->ReleaseBuffer(lBuffer);
     }
 
-    if (path.find("bmp") != string::npos)
-    {
-        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatBMP);
-    }
-    else if (path.find("tiff") != string::npos)
-    {
-        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatTIFF);
-    }
-    else if (path.find("raw") != string::npos)
-    {
-        lResult = ImgWriter.Store(this->ImgBuffer, path.c_str(), PvBufferFormatRaw);
-    }
-
-    if ( lResult.IsFailure() ) 
-    {
-        cout <<"    JAI ERROR: Could not save the image."<<endl;
-        cout <<"    JAI ERROR: "<<lResult.GetCodeString().GetAscii()<<endl;
-        return false;
-    }
+    cout << "==============" << endl;
     return true;
 }
 

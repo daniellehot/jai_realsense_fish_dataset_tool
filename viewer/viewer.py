@@ -64,6 +64,7 @@ def create_folders():
 class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
+        self.jai_cam.LoadCustomCameraConfiguration = True
         self.rs_cam = rs_camera.RS_Camera()
 
         self.coordinates = []
@@ -337,9 +338,10 @@ class Viewer():
         self.heatmapper.update(self.img_cv)
         self.heatmapper.save(filename)
 
-        #self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
-        cv.imwrite(RGB_PATH_JAI + filename + ".png", self.img_cv,[cv.IMWRITE_PNG_COMPRESSION, 0])
-        cv.imwrite(RGB_PATH_JAI + filename + "_annotated.png", self.scaled_img,[cv.IMWRITE_PNG_COMPRESSION, 0])
+        self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
+        #self.jai_cam.SaveImage("test.tiff")
+        #cv.imwrite(RGB_PATH_JAI + filename + ".png", self.img_cv,[cv.IMWRITE_PNG_COMPRESSION, 0])
+        #cv.imwrite(RGB_PATH_JAI + filename + "_annotated.png", self.scaled_img,[cv.IMWRITE_PNG_COMPRESSION, 0])
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
         
