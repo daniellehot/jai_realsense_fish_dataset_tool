@@ -64,7 +64,9 @@ def create_folders():
 class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
-        self.jai_cam.LoadCustomCameraConfiguration = True
+        self.jai_cam.LoadCustomCameraConfiguration = False
+        self.jai_cam.CameraConfigurationPath = "/home/vap/jai_realsense_fish_dataset_tool/jaiGo/saveCameraConfiguration/RG8_5Hz_199Kexposure_notColorAdjusted.pvxml"
+
         self.rs_cam = rs_camera.RS_Camera()
 
         self.coordinates = []

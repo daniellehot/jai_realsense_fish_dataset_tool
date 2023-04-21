@@ -9,6 +9,7 @@
 #include <PvPipeline.h>
 #include <PvConfigurationReader.h>
 #include <PvBufferWriter.h>
+#include <PvBufferConverter.h>
 #include <PvGenParameterArray.h>
 #include <PvGenParameter.h>
 
@@ -31,7 +32,9 @@ class JaiGo {
         PvGenParameterArray *DevParameters = NULL;
         PvStream *Stream = NULL;
         PvPipeline *Pipeline = NULL;
-        PvBuffer *ImgBuffer = NULL;
+        //PvBuffer *ImgBuffer = NULL;
+
+        PvBufferConverter *Converter = new PvBufferConverter();
 
         PvGenCommand *StartCommand = NULL;
         PvGenCommand *StopCommand = NULL;
@@ -44,10 +47,11 @@ class JaiGo {
         
         //StartStream()
         PvStream *OpenStream( const PvString &aConnectionID );
-        bool LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStream);
+        bool LoadCameraConfiguration(PvDevice *aDevice, PvStream *aStream);
         PvPipeline *CreatePipeline( PvDevice *aDevice, PvStream *aStream );
 
-        cv::Mat GetCvImage();
+        //PvBuffer* ColorizeStream(PvBuffer *ImgBuffer);
+        cv::Mat GetCvImage(PvBuffer *ImgBuffer);
 
         //To convert cv::Mat to numpy array
         py::dtype determine_np_dtype(int depth);
@@ -58,7 +62,9 @@ class JaiGo {
     public:
         bool Connected = false;
         bool Streaming = false;
+
         bool LoadCustomCameraConfiguration = false;
+        string CameraConfigurationPath = FILE_NAME;
 
         //Stream statistics
         double FrameRateVal = 0.0;
@@ -66,7 +72,7 @@ class JaiGo {
         //Image
         int ImgWidth;
         int ImgHeight;
-        cv::Mat Img;
+        cv::Mat cvImg;
         py::array npImg;
 
         void FindAndConnect();
@@ -170,7 +176,7 @@ void JaiGo::StartStream()
         bool DeviceAndStreamConfigurationReady = true; //With default setting this is always true
         if (this->LoadCustomCameraConfiguration)
         {
-            DeviceAndStreamConfigurationReady = JaiGo::LoadDeviceAndStreamConfiguration(this->Device, this->Stream); //If a custom configuration is needed, errors might occur
+            DeviceAndStreamConfigurationReady = JaiGo::LoadCameraConfiguration(this->Device, this->Stream); //If a custom configuration is needed, errors might occur
         }
         
         if (DeviceAndStreamConfigurationReady)
@@ -181,7 +187,20 @@ void JaiGo::StartStream()
             {
                 this->Pipeline = lPipeline;
 
-                // Get device parameters need to control streaming
+                // Create buffer converter. We will use it later
+                
+                /*
+                this->Converter = new PvBufferConverter();
+                PvBufferConverterRGBFilter ColorFilter;
+                ColorFilter.SetGainR(1.4f);
+                ColorFilter.SetGainG(1);
+                ColorFilter.SetGainB(3.4f);
+                cout << "ColorFilter" << endl;
+                PvResult SetRGBFilterResult =  Converter->SetRGBFilter(ColorFilter);
+                cout << "SetRGBFilter " << SetRGBFilterResult.GetCodeString().GetAscii() << endl;
+                */
+                
+                // Get device parameters needed to control streaming
                 PvGenParameterArray *lDeviceParams = this->Device->GetParameters();
 
                 // Map the GenICam AcquisitionStart and AcquisitionStop commands
@@ -232,12 +251,12 @@ PvStream* JaiGo::OpenStream( const PvString &aConnectionID )
     return lStream;
 }
 
-bool JaiGo::LoadDeviceAndStreamConfiguration(PvDevice *aDevice, PvStream *aStream)
+bool JaiGo::LoadCameraConfiguration(PvDevice *aDevice, PvStream *aStream)
 {
     PvConfigurationReader lReader;
     // Load all the information into a reader.
     cout << "JAI: Loading configuration" << endl;
-    lReader.Load( FILE_NAME );
+    lReader.Load( this->CameraConfigurationPath.c_str() );
 
     cout << "JAI: Restoring device configuration" << endl;
     PvResult lResult = lReader.Restore( DEVICE_CONFIGURATION_TAG, aDevice);
@@ -276,20 +295,22 @@ PvPipeline* JaiGo::CreatePipeline( PvDevice *aDevice, PvStream *aStream )
     return lPipeline;
 }
 
-cv::Mat JaiGo::GetCvImage()
+cv::Mat JaiGo::GetCvImage(PvBuffer *ImgBuffer)
 {
     PvGenParameter *lParameter = this->DevParameters->Get( "PixelFormat" );
     PvGenEnum *lPixelFormatParameter = dynamic_cast<PvGenEnum *>( lParameter );
     PvString pixelFormat;
     PvResult lResult = lPixelFormatParameter->GetValue(pixelFormat);
-    cv::Mat cvImg(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
+    //cv::Mat cvImg(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
+    cv::Mat Img(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
     
+
     if (lResult.IsOK())
     {
         if ( strcmp( pixelFormat.GetAscii(), "BayerRG8" ) == 0 )
         {
-            cv::Mat cvMat = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8U, this->ImgBuffer->GetDataPointer());
-            cv::cvtColor(cvMat, cvImg, cv::COLOR_BayerRG2RGB);
+            cv::Mat cvMat = cv::Mat(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_8U, ImgBuffer->GetDataPointer());
+            cv::cvtColor(cvMat, Img, cv::COLOR_BayerRG2RGB);
         } 
         else if ( strcmp( pixelFormat.GetAscii(), "BayerRG10p" ) == 0 || strcmp( pixelFormat.GetAscii(), "BayerRG12p" ) == 0 )
         {
@@ -297,15 +318,15 @@ cv::Mat JaiGo::GetCvImage()
         }
         else
         {
-            cv::Mat img16Bit = cv::Mat(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_16U, this->ImgBuffer->GetDataPointer());
+            cv::Mat img16Bit = cv::Mat(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_16U, ImgBuffer->GetDataPointer());
             cv::Mat img8Bit;
-            img16Bit.convertTo(img8Bit, CV_8U, 0.0625);
-            cv::cvtColor(img8Bit, cvImg, cv::COLOR_BayerRG2RGB);   
+            img16Bit.convertTo(img8Bit, CV_8U, 0.0625f);
+            cv::cvtColor(img8Bit, Img, cv::COLOR_BayerRG2RGB);   
         }
     }
-    this->Img = cvImg;
+    //this->cvImg = Img;
 
-    return cvImg;
+    return Img;
 }
 
 bool JaiGo::GrabImage()
@@ -332,9 +353,10 @@ bool JaiGo::GrabImage()
             {
                 this->ImgWidth = lBuffer->GetImage()->GetWidth();
                 this->ImgHeight = lBuffer->GetImage()->GetHeight();
-                this->ImgBuffer = lBuffer;
-                cv::Mat cvColorImg = JaiGo::GetCvImage();
-                this->npImg = JaiGo::mat_to_nparray(cvColorImg);
+                //this->ImgBuffer = lBuffer;
+                //cv::Mat cvColorImg = JaiGo::GetCvImage(lBuffer);
+                this->cvImg = JaiGo::GetCvImage(lBuffer);
+                this->npImg = JaiGo::mat_to_nparray(this->cvImg);
                 receivedImage = true;
                 
             } 
@@ -368,28 +390,60 @@ bool JaiGo::SaveImage(const string path)
 {
     PvBufferWriter ImgWriter;
     PvBuffer *lBuffer = NULL;
+    //PvBuffer *lBufferColored = new PvBuffer(PvPixelBayerRG8);
+    PvString pixelType;
+
     PvResult lOperationResult;
     PvResult lPipelineResult = this->Pipeline->RetrieveNextBuffer( &lBuffer, 1000, &lOperationResult );
+    pixelType = PvImage::PixelTypeToString(lBuffer->GetImage()->GetPixelType());
+    cout << "lBufffer Pixel Type " << pixelType.GetAscii()  << endl;
 
-    cout << "lPipelineResult " << lPipelineResult.GetCodeString().GetAscii() << endl;
-    cout << "lOperationResult " << lOperationResult.GetCodeString().GetAscii() << endl;
-    
+    //PvBuffer *lBufferColored = new PvBuffer();   
+    PvBuffer *lBufferColored = NULL;
+    lPipelineResult = this->Pipeline->RetrieveNextBuffer( &lBufferColored, 1000, &lOperationResult );
+    pixelType = PvImage::PixelTypeToString(lBufferColored->GetImage()->GetPixelType());
+    cout << "lBuffferColored Size " << lBufferColored->GetSize()  << endl;
+    cout << "lBuffferColored Pixel Type " << pixelType.GetAscii()  << endl;
+
+
+    //this->Converter = new PvBufferConverter();
+    PvBufferConverterRGBFilter ColorFilter;
+    ColorFilter.SetGainR(1.4f);
+    ColorFilter.SetGainG(1);
+    ColorFilter.SetGainB(3.4f);
+    cout << "ColorFilter" << endl;
+    PvResult SetRGBFilterResult =  Converter->SetRGBFilter(ColorFilter);
+    cout << "SetRGBFilter " << SetRGBFilterResult.GetCodeString().GetAscii() << endl;
+
+
+    PvResult convertedResult;
     if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
     {
+        //convertedResult = this->Converter->Convert(lBuffer, lBufferColored);
+        convertedResult = this->Converter->Convert(lBuffer, lBufferColored);
+    }
+    //cout << "lPipelineResult " << lPipelineResult.GetCodeString().GetAscii() << endl;
+    //cout << "lOperationResult " << lOperationResult.GetCodeString().GetAscii() << endl;
+    
+    cout << "==============" << endl;
+    cout << "convertedResult " << convertedResult.GetCodeString().GetAscii() <<  endl;
+    cout << "convertedResult " << convertedResult.GetDescription().GetAscii() <<  endl;
+    //if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
+    if ( convertedResult.IsOK())
+    {
         PvResult lResult;
-        cout << "==============" << endl;
         cout << "JAI: Saving image to " << path << endl;
         if (path.find("bmp") != string::npos)
         {
-            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatBMP);
+            lResult = ImgWriter.Store(lBufferColored, path.c_str(), PvBufferFormatBMP);
         }
         else if (path.find("tiff") != string::npos)
         {
-            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatTIFF);
+            lResult = ImgWriter.Store(lBufferColored, path.c_str(), PvBufferFormatTIFF);
         }
         else if (path.find("raw") != string::npos)
         {
-            lResult = ImgWriter.Store(lBuffer, path.c_str(), PvBufferFormatRaw);
+            lResult = ImgWriter.Store(lBufferColored, path.c_str(), PvBufferFormatRaw);
         }
 
         if ( lResult.IsFailure() ) 
@@ -584,6 +638,8 @@ PYBIND11_MODULE(pyJaiGo, m) {
 
         .def_readwrite("Streaming", &JaiGo::Streaming)
         .def_readwrite("LoadCustomCameraConfiguration", &JaiGo::LoadCustomCameraConfiguration)
+        .def_readwrite("CameraConfigurationPath", &JaiGo::CameraConfigurationPath)
+
         .def_readonly("Connected", &JaiGo::Connected)
         .def_readonly("FrameRate", &JaiGo::FrameRateVal)
         .def_readonly("BandWidth", &JaiGo::BandwidthVal)
