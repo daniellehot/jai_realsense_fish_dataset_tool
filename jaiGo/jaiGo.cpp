@@ -679,9 +679,3 @@ PYBIND11_MODULE(pyJaiGo, m) {
         .def_readonly("ImgWidth", &JaiGo::ImgWidth)
         .def_readonly("Img", &JaiGo::npImg);
 }
-
-//Gains
-        bool AdjustColors = false;
-        double GainB;
-        double GainG;
-        double GainR;  
