@@ -65,7 +65,7 @@ class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
         self.jai_cam.LoadCustomCameraConfiguration = True
-        self.jai_cam.CameraConfigurationPath = "/home/vap/jai_realsense_fish_dataset_tool/jaiGo/saveCameraConfiguration/RG10_5Hz_199Kexposure.pvxml"
+        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/saveCameraConfiguration/RG12_5Hz_199Kexposure.pvxml"
 
         self.rs_cam = rs_camera.RS_Camera()
 
