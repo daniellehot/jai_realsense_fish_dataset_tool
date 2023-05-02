@@ -591,7 +591,8 @@ bool JaiGo::SetPixelFormat(const string format)
     PvResult lResult = lPixelFormatParameter->SetValue( format.c_str() );
     if ( lResult.IsFailure() )
     {
-        cout << "    JAI ERROR: Error changing pixel format on device." << endl;
+        cout << "   JAI ERROR: Error changing pixel format on device." << endl;
+        cout << "   JAI ERROR: Supported input arguments are BayerRG8, BayerRG10, BayerRG10p, BayerRG12, and BayerRG12p." << endl;
         return false;
     }
     

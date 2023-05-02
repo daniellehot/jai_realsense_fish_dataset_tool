@@ -36,8 +36,8 @@
       <parameter name="ExposureTime">199000</parameter>
       <parameter name="ExposureAuto">Off</parameter>
       <parameter name="Gain[GainSelector:AnalogAll]">1</parameter>
-      <parameter name="Gain[GainSelector:DigitalRed]">1.3999</parameter>
-      <parameter name="Gain[GainSelector:DigitalBlue]">3.3999</parameter>
+      <parameter name="Gain[GainSelector:DigitalRed]">1.4</parameter>
+      <parameter name="Gain[GainSelector:DigitalBlue]">1.8</parameter>
       <parameter name="BlackLevel[BlackLevelSelector:DigitalAll]">0</parameter>
       <parameter name="BlackLevel[BlackLevelSelector:DigitalRed]">0</parameter>
       <parameter name="BlackLevel[BlackLevelSelector:DigitalBlue]">0</parameter>
