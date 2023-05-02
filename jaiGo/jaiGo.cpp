@@ -34,9 +34,6 @@ class JaiGo {
         PvStream *Stream = NULL;
         PvPipeline *Pipeline = NULL;
 
-        //PvBuffer *ImgBuffer = NULL;
-        //PvBufferConverter *Converter = new PvBufferConverter(); //remember to delete at the end
-
         PvGenCommand *StartCommand = NULL;
         PvGenCommand *StopCommand = NULL;
         PvGenFloat *FrameRate = NULL;
@@ -50,9 +47,6 @@ class JaiGo {
         PvStream *OpenStream( const PvString &aConnectionID );
         bool LoadCameraConfiguration(PvDevice *aDevice, PvStream *aStream);
         PvPipeline *CreatePipeline( PvDevice *aDevice, PvStream *aStream );
-
-        //void ConvertBuffer(PvBuffer *InputBuffer, PvBuffer *OutputBuffer, PvPixelType PixelFormat); 
-        //void ProcessBuffer(PvBuffer *Buffer);
 
         //Convert Buffer to cv::Mat and then convert cv::Mat to numpy array
         cv::Mat GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat);
@@ -81,7 +75,6 @@ class JaiGo {
         //Image
         int ImgWidth;
         int ImgHeight;
-        //cv::Mat cvImg;
         py::array npImg;
 
         void FindAndConnect();
@@ -291,74 +284,6 @@ PvPipeline* JaiGo::CreatePipeline( PvDevice *aDevice, PvStream *aStream )
     return lPipeline;
 }
 
-/*
-cv::Mat JaiGo::GetCvImage(PvBuffer *ImgBuffer)
-{
-    PvGenParameter *lParameter = this->DevParameters->Get( "PixelFormat" );
-    PvGenEnum *lPixelFormatParameter = dynamic_cast<PvGenEnum *>( lParameter );
-    PvString pixelFormat;
-    PvResult lResult = lPixelFormatParameter->GetValue(pixelFormat);
-    //cv::Mat cvImg(this->ImgBuffer->GetImage()->GetHeight(), this->ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
-    cv::Mat Img(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_8UC3);
-    
-
-    if (lResult.IsOK())
-    {
-        if ( strcmp( pixelFormat.GetAscii(), "BayerRG8" ) == 0 )
-        {
-            cv::Mat cvMat = cv::Mat(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_8U, ImgBuffer->GetDataPointer());
-            cv::cvtColor(cvMat, Img, cv::COLOR_BayerRG2RGB);
-        } 
-        else if ( strcmp( pixelFormat.GetAscii(), "BayerRG10p" ) == 0 || strcmp( pixelFormat.GetAscii(), "BayerRG12p" ) == 0 )
-        {
-            cout << "JAI: Selected pixel format cannot be visualized. Use BayerRG8, BayerRG10, or BayerRG12. Current format is " << pixelFormat.GetAscii() << endl;
-        }
-        else
-        {
-            cv::Mat img16Bit = cv::Mat(ImgBuffer->GetImage()->GetHeight(), ImgBuffer->GetImage()->GetWidth(), CV_16U, ImgBuffer->GetDataPointer());
-            cv::Mat img8Bit;
-            img16Bit.convertTo(img8Bit, CV_8U, 0.0625f);
-            cv::cvtColor(img8Bit, Img, cv::COLOR_BayerRG2RGB);   
-        }
-    }
-    //this->cvImg = Img;
-
-    return Img;
-}
-*/
-
-/*
-void JaiGo::ConvertBuffer(PvBuffer *InputBuffer, PvBuffer *OutputBuffer, PvPixelType PixelFormat) 
-{
-    PvBufferConverterRGBFilter *ColorFilter = new PvBufferConverterRGBFilter();
-    ColorFilter->SetGainR(1.4f);
-    ColorFilter->SetGainG(1.0f);
-    ColorFilter->SetGainB(3.4f);
-    PvBufferConverter *Converter = new PvBufferConverter();  
-    Converter->SetBayerFilter(PvBayerFilterSimple); 
-    Converter->SetRGBFilter(*ColorFilter);
-    
-    if (Converter->IsConversionSupported(InputBuffer->GetImage()->GetPixelType(), PixelFormat))
-    {
-        OutputBuffer->GetImage()->Alloc(
-            InputBuffer->GetImage()->GetWidth(), 
-            InputBuffer->GetImage()->GetHeight(), 
-            PixelFormat
-            );
-
-        Converter->Convert(InputBuffer, OutputBuffer, 1, 0);
-    }
-    else 
-    {
-        cout << "   JAI ERROR: Conversion is not supported" << endl;
-    }
-
-    //Clean up
-    delete Converter;
-    delete ColorFilter;
-}
-*/
-
 cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
 {
     PvBuffer *convertedBuffer = new PvBuffer();
@@ -401,7 +326,6 @@ cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
     return cvImg;
 }
 
-
 bool JaiGo::GrabImage()
 { 
     bool receivedImage = false;
@@ -423,11 +347,6 @@ bool JaiGo::GrabImage()
             {
                 this->ImgWidth = lBuffer->GetImage()->GetWidth();
                 this->ImgHeight = lBuffer->GetImage()->GetHeight();
-                //this->ImgBuffer = lBuffer;
-                //cv::Mat cvColorImg = JaiGo::GetCvImage(lBuffer);
-                //cout << "Pixel type of the grabbed image " << PvImage::PixelTypeToString( lBuffer->GetImage()->GetPixelType() ).GetAscii() << endl;
-
-                //this->cvImg = JaiGo::GetCvImage(lBuffer);
                 cv::Mat cvImg = JaiGo::GetCvImage(lBuffer, PvPixelBGR8);
                 this->npImg = JaiGo::mat_to_nparray(cvImg);
                 receivedImage = true;
@@ -458,45 +377,9 @@ bool JaiGo::GrabImage()
     return receivedImage;
 }
 
-/*
-void JaiGo::ProcessBuffer(PvBuffer *Buffer)
-{   
-    cout << "Buffer Pixel type " << PvImage::PixelTypeToString( Buffer->GetImage()->GetPixelType() ).GetAscii() << endl;
-
-    PvBufferConverter  *converter = new PvBufferConverter();
-    converter->SetBayerFilter(PvBayerFilterSimple);
- 
-    //PvPixelType goalPixelFormat = PvPixelRGB16;
-    PvBuffer *convertedBuffer = new PvBuffer();
-    convertedBuffer->GetImage()->Alloc(
-            Buffer->GetImage()->GetWidth(), 
-            Buffer->GetImage()->GetHeight(), 
-            PvPixelBGR16
-            );
-
-    converter->Convert(Buffer, convertedBuffer, 1, 0);
-    cv::Mat Img = cv::Mat(convertedBuffer->GetImage()->GetHeight(), convertedBuffer->GetImage()->GetWidth(), CV_16UC3, convertedBuffer->GetDataPointer());
-    imwrite("Img16BitGreen.png", Img);
-    Img = Img.mul( cv::Scalar(2.2, 1.0, 1.4) );
-    //imwrite("Img16MaybeColored.png", Img);
-    vector<int> imwriteTags = {cv::IMWRITE_TIFF_COMPRESSION, 1};
-    imwrite("Img16Colored.tiff", Img, imwriteTags);
-    
-    delete converter, convertedBuffer;
-}
-*/
-
 bool JaiGo::SaveImage(const string path)
 {
 
-    //PvBufferWriter ImgWriter;
-    //ImgWriter.GetConverter().SetBayerFilter(PvBayerFilterSimple);
-    //PvBufferConverterRGBFilter ColorFilter;
-    //ColorFilter.SetGainR(1.4f);
-    //ColorFilter.SetGainG(1);
-    //ColorFilter.SetGainB(3.4f);
-    //ImgWriter.GetConverter().SetRGBFilter(ColorFilter);
-    
     PvBuffer *lBuffer = NULL;
     PvResult lOperationResult;
     PvResult lPipelineResult = this->Pipeline->RetrieveNextBuffer( &lBuffer, 1000, &lOperationResult );
@@ -515,16 +398,21 @@ bool JaiGo::SaveImage(const string path)
     if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
     {
         cout << "JAI: Saving image to " << path << endl;
-        if (path.find("bmp") != string::npos)
+        if (path.find(".bmp") != string::npos)
         {
             cout << "JAI: Save .bmp TODO" << endl;
         }
-        else if (path.find("tiff") != string::npos)
+        else if (path.find(".tiff") != string::npos)
         {
             vector<int> imwriteTags = {cv::IMWRITE_TIFF_COMPRESSION, 1};
             imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
         }
-        else if (path.find("raw") != string::npos)
+        else if (path.find(".png") != string::npos)
+        {
+            vector<int> imwriteTags = {cv::IMWRITE_PNG_COMPRESSION, 1};
+            imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
+        }
+        else if (path.find(".raw") != string::npos)
         {
             cout << "JAI: Save .raw TODO" << endl;
         }

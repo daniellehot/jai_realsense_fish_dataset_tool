@@ -65,7 +65,7 @@ class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
         self.jai_cam.LoadCustomCameraConfiguration = True
-        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/saveCameraConfiguration/RG12_5Hz_199Kexposure.pvxml"
+        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG12_5Hz_199Kexposure.pvxml"
 
         self.rs_cam = rs_camera.RS_Camera()
 
@@ -341,9 +341,7 @@ class Viewer():
         self.heatmapper.save(filename)
 
         self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
-        #self.jai_cam.SaveImage("test.tiff")
-        #cv.imwrite(RGB_PATH_JAI + filename + ".png", self.img_cv,[cv.IMWRITE_PNG_COMPRESSION, 0])
-        #cv.imwrite(RGB_PATH_JAI + filename + "_annotated.png", self.scaled_img,[cv.IMWRITE_PNG_COMPRESSION, 0])
+        self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".png")
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
         
