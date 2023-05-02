@@ -60,6 +60,13 @@ def create_folders():
 class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
+        self.jai_cam.LoadCustomCameraConfiguration = True
+        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG12_5Hz_199Kexposure.pvxml"
+        self.jai_cam.AdjustColors = True
+        self.jai_cam.GainB = 1.8
+        self.jai_cam.GainG = 1.0
+        self.jai_cam.GainR = 1.4
+
         self.rs_cam = rs_camera.RS_Camera()
 
         self.coordinates = []
@@ -136,7 +143,7 @@ class Viewer():
                 self.mode = "annotating"
                 self.color = self.mode_color_dict[self.mode]
 
-            if key.char == "q":
+            if key.char == "Q":
                 self.stop_stream()
                 cv.destroyAllWindows()
         except AttributeError:
@@ -266,7 +273,7 @@ class Viewer():
         self.saved_files = []
 
         self.heatmapper.update(self.img_cv)
-        self.heatmapper.save(filename)
+        #self.heatmapper.save(filename)
 
         self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
@@ -353,7 +360,7 @@ if __name__=="__main__":
         print("V: Error occurred, stopping streams and shutting down")
         print("   Streaming status Jai ", viewer.jai_cam.Streaming)
         print("   Streaming status RealSense ", viewer.rs_cam.Streaming)
-        print("ERROR: ", e)
+        print("V ERROR: ", e)
         if viewer.jai_cam.Streaming:
             viewer.jai_cam.CloseAndDisconnect()
         if viewer.rs_cam.Streaming:
