@@ -1,0 +1,77 @@
+{\rtf1\ansi\ansicpg819
+{\stylesheet
+{\s0 Normal;}
+{\s1\snext0\outlinelevel0\fs36\b Heading 1;}
+{\s2\snext0\outlinelevel1\fs32\b Heading 2;}
+{\s3\snext0\outlinelevel2\fs28\b Heading 3;}
+{\s4\snext0\outlinelevel3\fs24\b Heading 4;}
+{\s5\snext0\outlinelevel4\fs20\b Heading 5;}
+{\s6\snext0\outlinelevel5\fs16\b Heading 6;}
+}
+{\pard\plain\s0 {\b Pixel Format}\par}
+{\pard\plain\s0 \tab BayerRG8\par}
+{\pard\plain\s0 \tab \tab - 8 bit format\line \tab \tab - processing on the camera\par}
+{\pard\plain\s0 \tab \tab - up to 75 FPS\par}
+{\pard\plain\s0 \tab BayerRG10 \par}
+{\pard\plain\s0 \tab \tab - 10 bit format\par}
+{\pard\plain\s0 \tab \tab - processing on the camera\par}
+{\pard\plain\s0 \tab \tab - up to 37 FPS\par}
+{\pard\plain\s0 \tab BayerRG12 \par}
+{\pard\plain\s0 \tab \tab - 12 bit format\par}
+{\pard\plain\s0 \tab \tab - no processing on the camera or {\b AGC }\par}
+{\pard\plain\s0 \tab \tab - up to 37 FPS \par}
+{\pard\plain\s0 Saving 12 bit images into 16 bit file format is common even with DSLR cameras \par}
+{\pard\plain\s0 \tab \par}
+{\pard\plain\s0 {\b BayerRG10 vs BayerRG12}\par}
+{\pard\plain\s0 * Can we achieve similar post-processing as implemented on the camera? What processing parameters should we use? How do we decide on them? (Rawtherapee-cli works well for auto-adjustment)\par}
+{\pard\plain\s0 * Post-processing after data acquisition - why would we do this? How would we argue for this step in the paper or with regards to our use-case?   \par}
+{\pard\plain\s0 * Is higher bit depth more important than full processing capabilities of the camera?\par}
+{\pard\plain\s0 * Device gains (10 bit) produce different color balance compared to \ldblquote OpenCV\rdblquote  gains (12 bit)\par}
+{\pard\plain\s0 \tab \par}
+{\pard\plain\s0 {\b ALC (Automatic Level Control)}\par}
+{\pard\plain\s0 The ALC Reference is the target saturation level for the algorithm used in the camera for the area chosen. Then it applies these settings for the whole image. Saturation level relates to the amount of light the image sensor receives, see more here https://www.princetoninstruments.com/learn/camera-fundamentals/full-well-capacity-pixel-saturation \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 (Based on my experience) The ALC increases exposure time first. If the reference saturation value cannot be achieved with the exposure time alone, the gain is adjusted to compensate. This also means that using ALC without both the ASC (Auto Shutter Control) and AGC (Auto Gain Control) only provides limited benefit. We should consider using the AGC instead of constant gain. \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 Regarding the ALC control speed, if the step is large then the image brightness changes a lot. This means if it goes close to the target brightness faster. This on the other hand means you can easily overshoot by a lot and it is hard for the algorithm to stabilize around the target brightness. Shorter steps means it changes slower, but it is easier for it to stabilize around the target brightness.\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 Max and Min can be set for both ASC and AGC. ASC Max should be set to the max given current FPS. AGC Max should be set such that electrical noise is limited - ideally no or at only a little.  \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 {\b Black level}\par}
+{\pard\plain\s0 How dark is black. Lower the value, the darker the image - histogram shifts to the left, lack of light is amplified. Higher the value, the brighter the image - histogram shifts to the right, black is brighter. \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 Test\par}
+{\pard\plain\s0 - Put a cap on the camera, start the stream (8 or 10 bit)\par}
+{\pard\plain\s0 - Set the Black Level to -133, 0, and 255\par}
+{\pard\plain\s0 - Observe how the black changes \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 With AGC on, high black levels result in lower gain. Low black levels result in higher gain. But this is somehow tied with the \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 Low black levels leads to better dynamic range?\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 {\b JAIGamma Gamma correction}\par}
+{\pard\plain\s0 From the manual - \ldblquote The gamma function corrects the output signals from the camera beforehand (reverse correction), taking into consideration the light-emitting properties of the monitor display.\par}
+{\pard\plain\s0 As the light-emitting properties of the monitor are not linear, the entire image may be darker or the\par}
+{\pard\plain\s0 gradation in the dark areas may be less noticeable when camera outputs are displayed without\par}
+{\pard\plain\s0 processing. The gamma function can be used to correct the camera signals with an opposite-direction curve and produce a display that is close to linear.\rdblquote   {\b Improves dynamic range}\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 Why does black level and saturation reference interact with each other?\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 {\b General rules}\par}
+{\pard\plain\s0 * Exposure time and Gain - influence exposure\par}
+{\pard\plain\s0 * ALC Reference value - the goal saturation level, high values are on the right side of the histogram, and low values are on the left side of the histogram\par}
+{\pard\plain\s0 * JAIGamma - has no effect on the gain, but has a big effect on the dynamic range\par}
+{\pard\plain\s0 *Black level - low value increase gain, high values decrease gain, shifts histogram left for low value and right for high values\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0 How to achieve constant exposure with low gain and high dynamic range? \par}
+{\pard\plain\s0 1. Identify good ALC reference value. Purely use-case dependent\par}
+{\pard\plain\s0 2. Turn on ASC and AGC, correct min and max values for both \par}
+{\pard\plain\s0 3. Set black level to 255 in order to minimize gain \par}
+{\pard\plain\s0 4. Perform white balance or set to continuous (Red = 1.39, Blue = 2.42)\par}
+{\pard\plain\s0 5. Pick JAIGamma such that the dynamic range is maximized. However, it is better to waste some range than to go into clipping.  https://photographylife.com/understanding-histograms-in-photography \par}
+{\pard\plain\s0\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0\par}
+{\pard\plain\s0\par}
+}
