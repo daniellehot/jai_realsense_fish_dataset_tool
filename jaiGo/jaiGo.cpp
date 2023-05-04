@@ -294,7 +294,7 @@ cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
     );
 
     PvBufferConverter  *converter = new PvBufferConverter();
-    converter->SetBayerFilter(PvBayerFilterSimple);
+    converter->SetBayerFilter(PvBayerFilter3X3); //PvBayerFilterSimple
     
     if (converter->IsConversionSupported(buffer->GetImage()->GetPixelType(), pixelFormat))
     {

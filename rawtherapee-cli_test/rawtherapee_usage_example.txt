@@ -1,0 +1,3 @@
+# https://rawpedia.rawtherapee.com/Command-Line_Options
+
+rawtherapee-cli -o temp.tiff -p processing.pp3 -t -c image_1.tif 
