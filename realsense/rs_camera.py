@@ -16,7 +16,7 @@ class RS_Camera():
 
         #self.decimation_f = rs.decimation_filter()
         self.depth_min = 0.5
-        self.depth_max = 8.0
+        self.depth_max = 1.15
         self.threshold_f = rs.threshold_filter(self.depth_min, self.depth_max)
         self.spatial_f = rs.spatial_filter()
         self.temporal_f = rs.temporal_filter()
@@ -50,15 +50,17 @@ class RS_Camera():
                 sensor.set_option(rs.option.laser_power, 360.0)
                 sensor.set_option(rs.option.emitter_enabled, 1)
             if sensor.is_color_sensor():
-                sensor.set_option(rs.option.exposure, 3000.0)
-                sensor.set_option(rs.option.gain, 0.0)
+                sensor.set_option(rs.option.enable_auto_exposure, True) 
+                #sensor.set_option(rs.option.exposure, 3000.0)
+                #sensor.set_option(rs.option.gain, 0.0)
                 sensor.set_option(rs.option.brightness, 0.0)
                 sensor.set_option(rs.option.contrast, 50.0)
                 sensor.set_option(rs.option.gamma, 300.0)
                 sensor.set_option(rs.option.hue, 0.0)
                 sensor.set_option(rs.option.saturation, 50.0)
                 sensor.set_option(rs.option.sharpness, 100.0)
-                sensor.set_option(rs.option.white_balance, 4200.0)
+                #sensor.set_option(rs.option.white_balance, 4200.0)
+                sensor.set_option(rs.option.enable_auto_white_balance, True) 
 
     def get_data(self):
         ''' In case we want to use more filtering 
