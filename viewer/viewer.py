@@ -35,6 +35,7 @@ RS_PATH = "rs/"
 JAI_PATH = "jai/"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
+ANNOTATED_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotated/")
 DEPTH_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "depth/")
 PC_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "pc/")
 ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
@@ -48,6 +49,7 @@ def create_folders():
         os.mkdir(os.path.join(ROOT_PATH, RS_PATH))
         os.mkdir(os.path.join(ROOT_PATH, JAI_PATH))
         os.mkdir(RGB_PATH_JAI)
+        os.mkdir(ANNOTATED_PATH_JAI)
         os.mkdir(RGB_PATH_RS)
         os.mkdir(DEPTH_PATH_RS)
         os.mkdir(PC_PATH_RS)
@@ -61,7 +63,7 @@ class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
         self.jai_cam.LoadCustomCameraConfiguration = True
-        self.jai_cam.CameraConfigurationPath = "/home/vap/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_ideal_polarizingFilter.pvxml"
+        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_ideal_polarizingFilter.pvxml"
         self.jai_cam.AdjustColors = False
         self.jai_cam.GainB = 2.84
         self.jai_cam.GainG = 1.0

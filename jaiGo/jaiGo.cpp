@@ -308,12 +308,13 @@ cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
     cv::Mat cvImg;
     if (pixelFormat == PvPixelBGR8)
     {
-        cvImg = cv::Mat(convertedBuffer->GetImage()->GetHeight(), convertedBuffer->GetImage()->GetWidth(), CV_8UC3, convertedBuffer->GetDataPointer());
+        cv::Mat(convertedBuffer->GetImage()->GetHeight(), convertedBuffer->GetImage()->GetWidth(), CV_8UC3, convertedBuffer->GetDataPointer()).copyTo(cvImg);
+        
     }
 
     if (pixelFormat == PvPixelBGR16)
     {
-        cvImg = cv::Mat(convertedBuffer->GetImage()->GetHeight(), convertedBuffer->GetImage()->GetWidth(), CV_16UC3, convertedBuffer->GetDataPointer());
+        cv::Mat(convertedBuffer->GetImage()->GetHeight(), convertedBuffer->GetImage()->GetWidth(), CV_16UC3, convertedBuffer->GetDataPointer()).copyTo(cvImg);;
     }
 
     if (this->AdjustColors)
@@ -321,8 +322,9 @@ cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
         cvImg = cvImg.mul( cv::Scalar(this->GainB, this->GainG, this->GainR) );
     }
 
-    
-    delete converter, convertedBuffer;
+    delete convertedBuffer;
+    delete converter;
+
     return cvImg;
 }
 
