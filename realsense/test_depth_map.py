@@ -14,9 +14,9 @@ if __name__=="__main__":
     argParser.add_argument("-i", "--input", type=str, help="Path to the image")
 
     args = argParser.parse_args()
-    img = cv.imread(args.input, cv.IMREAD_UNCHANGED)
-    print("img shape", img.shape)
-    img_colorized = cv.applyColorMap(img.astype(np.uint8), cv.COLORMAP_JET)
-
+    img_16bit = cv.imread(args.input, cv.IMREAD_UNCHANGED)
+    scale_factor = 255/np.amax(img_16bit)
+    img_8bit = (img_16bit*scale_factor).astype(np.uint8)
+    img_colorized = cv.applyColorMap(img_8bit, cv.COLORMAP_JET)
     cv.imshow("depth map", img_colorized)
     cv.waitKey(0)

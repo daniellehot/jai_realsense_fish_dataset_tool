@@ -98,8 +98,9 @@ class RS_Camera():
         #print("RS: Received intrinsics")
         
         self.depth_frame = aligned_frames.get_depth_frame()
-        self.depth_frame = self.threshold_f.process(self.depth_frame)
         self.depth_map = np.asanyarray(self.depth_frame.get_data())
+        
+        self.depth_frame = self.threshold_f.process(self.depth_frame)
         #self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
         #print("RS: Received depth map")
 
