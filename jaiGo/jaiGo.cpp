@@ -302,7 +302,7 @@ cv::Mat JaiGo::GetCvImage(PvBuffer *buffer, PvPixelType pixelFormat)
     }
     else 
     {
-        cout << "JAI ERROR: Conversion is not supported " << endl;
+        cout << "   JAI ERROR: Conversion is not supported " << endl;
     }
 
     cv::Mat cvImg;
@@ -396,7 +396,7 @@ bool JaiGo::SaveImage(const string path)
         goalPixelType = PvPixelBGR16;   
     }
     
-    cout << "==============" << endl;
+    //cout << "==============" << endl;
     if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
     {
         cout << "JAI: Saving image to " << path << endl;
@@ -419,8 +419,20 @@ bool JaiGo::SaveImage(const string path)
             cout << "JAI: Save .raw TODO" << endl;
         }
     }
+    else
+    {
+        if ( lPipelineResult.IsFailure()) 
+        {
+            cout << "   JAI ERROR: " << lPipelineResult.GetCodeString().GetAscii() << endl;
+        }
 
-    cout << "==============" << endl;
+        if ( lOperationResult.IsFailure() )
+        {
+            cout << "   JAI ERROR: " << lOperationResult.GetCodeString().GetAscii() << endl;
+        }
+    }
+
+    //cout << "==============" << endl;
     
     return true;
 }

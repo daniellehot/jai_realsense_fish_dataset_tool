@@ -109,6 +109,7 @@ class Viewer():
             if key.char == "s" and len(self.coordinates) != 0 and not self.saving:
                 self.saving = True
                 self.color = self.mode_color_dict["saving"]
+                self.heatmapper.update(self.img_cv)
                 self.save_data()
                 self.saving = False
                 self.color = self.mode_color_dict[self.mode]
@@ -149,7 +150,8 @@ class Viewer():
                 self.stop_stream()
                 cv.destroyAllWindows()
         except AttributeError:
-            print('V: special key {0} pressed'.format(key))
+            pass
+            #print('V: special key {0} pressed'.format(key))
 
     def start_keylistener(self):
         keyboard_listener = keyboard.Listener(on_press=self.on_press)
@@ -274,13 +276,18 @@ class Viewer():
         filename = self.get_filename(RGB_PATH_JAI)
         self.saved_files = []
 
-        self.heatmapper.update(self.img_cv)
-        #self.heatmapper.save(filename)
+        self.heatmapper.save(HEATMAPS_PATH + filename + ".png")
+        self.saved_files.append(HEATMAPS_PATH + filename + ".png")
+        print("V: HEATMAP saved ", HEATMAPS_PATH + filename + ".png")
 
         self.jai_cam.SaveImage(RGB_PATH_JAI + filename + ".tiff")
         self.saved_files.append(RGB_PATH_JAI + filename + ".tiff")
         print("V: RGB saved ", RGB_PATH_JAI + filename + ".tiff")
         
+        cv.imwrite(ANNOTATED_PATH_JAI + filename + ".png", self.scaled_img)
+        self.saved_files.append(ANNOTATED_PATH_JAI + filename + ".png")
+        print("V: ANNOTATED saved ", ANNOTATED_PATH_JAI + filename + ".png")
+
         self.rs_cam.save_image(RGB_PATH_RS + filename + ".png")
         self.saved_files.append(RGB_PATH_RS + filename + ".png")
         print("V: RGB saved ", RGB_PATH_RS + filename + ".png")
@@ -342,6 +349,12 @@ class Viewer():
                 writer = csv.writer(f)
                 for annotation in data:
                     writer.writerow(annotation)
+            cv.imwrite( 
+                self.path_to_session_log.replace(".csv", ".jpeg"), 
+                cv.resize( self.scaled_img, ( int(self.scaled_img.shape[1]/3), int(self.scaled_img.shape[0]/3) ) ),  #cv.resize( img, (width, height) )
+                [cv.IMWRITE_JPEG2000_COMPRESSION_X1000, 9]
+                )
+
         self.log_data = data
        
 

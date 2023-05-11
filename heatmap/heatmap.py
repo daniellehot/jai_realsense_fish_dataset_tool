@@ -8,13 +8,17 @@ import os
 
 class Heatmap():
     def __init__(self, path, image_dimensions):
-        self.heatmap_time_series_path = os.path.join(path, "time_series")
-        self.heatmap_colored_path = os.path.join(path, "heatmap_colored.png")
-        self.heatmap_raw_path = os.path.join(path, "heatmap_raw.png")
-        self.heatmap_overlapped_path = os.path.join(path, "heatmap_overlapped.png")
-        self.img_dim = image_dimensions
-        self.load()
+        #self.heatmap_time_series_path = os.path.join(path, "time_series")
+        #self.heatmap_colored_path = os.path.join(path, "heatmap_colored.png")
+        #self.heatmap_raw_path = os.path.join(path, "heatmap_raw.png")
+        #self.heatmap_overlapped_path = os.path.join(path, "heatmap_overlapped.png")
 
+        self.img_dim = image_dimensions
+        self.heatmap_img = np.zeros((self.img_dim[1], self.img_dim[0]), dtype=np.int16) #Correct for numpy's row major matrix representation
+        self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
+        #self.load()
+
+    """
     def load(self):
         if os.path.exists(self.heatmap_raw_path):
             print("HEATMAP: Data found at", self.heatmap_raw_path)
@@ -25,9 +29,11 @@ class Heatmap():
             print("HEATMAP: heatmap_raw.png does not exist. Data not found, initializing empty variable")
             self.heatmap_img = np.zeros((self.img_dim[1], self.img_dim[0]), dtype=np.int16) #Correct for numpy's row major matrix representation
             self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
+    """
 
     def update(self, image):
-        print("HEATMAP: Computing a heatmap")
+        #print("HEATMAP: Computing a heatmap")
+        
         #General processing
         image_resized = cv.resize(image, self.img_dim)
         image_gray = cv.cvtColor(image_resized, cv.COLOR_BGR2GRAY)
@@ -59,7 +65,7 @@ class Heatmap():
 
         #cv.waitKey(0)
 
-    def save(self, filename):
+    def save_all(self, filename):
         #print("HEATMAP: Saving heatmap data")
 
         if not os.path.exists (self.heatmap_raw_path):
@@ -77,6 +83,11 @@ class Heatmap():
         #Overlapped heatmap
         cv.imwrite(self.heatmap_overlapped_path, self.heatmap_img_overlapped, [cv.IMWRITE_PNG_COMPRESSION, 0])
         print("HEATMAP: HEATMAP_OVERLAPPED saved ", self.heatmap_overlapped_path)
+
+    def save(self, filepath):
+        #if not os.path.exists (self.heatmap_raw_path):
+        #    os.mkdir(self.heatmap_time_series_path)
+        cv.imwrite(filepath, self.heatmap_img_overlapped, [cv.IMWRITE_PNG_COMPRESSION, 0])
 
 
 if __name__=="__main__":
