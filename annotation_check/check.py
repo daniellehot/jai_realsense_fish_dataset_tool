@@ -1,20 +1,14 @@
 # Standard modules
 import cv2 as cv
-import os
-import numpy as np
 import csv
 import argparse
 
-# Custom modules
-import sys
-sys.path.append("../jaiGo/")
-import pyJaiGo as jai
-sys.path.append("../viewer/")
-import viewer
-
-
 def get_annotations(_path):
-    annotation_path = _path.replace(".png", ".csv")
+    annotation_path = None
+    if ".png" in _path:
+        annotation_path = _path.replace(".png", ".csv")
+    if ".tiff" in _path:
+        annotation_path = _path.replace(".tiff", ".csv")    
     annotation_path = annotation_path.replace("rgb", "annotations")
     print("Reading annotation file", annotation_path)
     _annotations = None

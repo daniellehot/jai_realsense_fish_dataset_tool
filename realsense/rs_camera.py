@@ -125,7 +125,8 @@ class RS_Camera():
         v = (tex_coords[:, 1] * self.color_height + 0.5).astype(np.uint32)
         np.clip(v, 0, self.color_height-1, out=v)
         
-        color_img_normalized = self.normalize(self.img)
+        img_rgb = cv.cvtColor(self.img, cv.COLOR_BGR2RGB)
+        color_img_normalized = self.normalize(img_rgb)
         pc_colors = color_img_normalized[v, u]
 
         pc_colored = o3d.geometry.PointCloud()
@@ -137,7 +138,11 @@ class RS_Camera():
         return x.astype(float)/255
 
     def save_image(self, path):
-        cv.imwrite(path, self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+        if ".png" in path:
+            cv.imwrite(path, self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
+
+        if ".tiff" in path:
+            cv.imwrite(path, self.img, [cv.IMWRITE_TIFF_COMPRESSION, 1])
 
     def save_pointcloud(self, path):
         o3d.io.write_point_cloud(path, self.pointcloud) 

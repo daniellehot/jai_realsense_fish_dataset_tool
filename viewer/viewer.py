@@ -160,7 +160,8 @@ class Viewer():
     def create_session_log(self):
         self.log_data = None
         self.log_entry = 0
-        filename = self.get_filename(LOGS_PATH) + ".csv"
+        file_number = int(self.get_filename(LOGS_PATH)) -1
+        filename = str(file_number).zfill(5) + ".csv"
         self.path_to_session_log = os.path.join(LOGS_PATH, filename)
         with open(self.path_to_session_log, 'a') as f: 
             writer = csv.writer(f)
@@ -287,6 +288,10 @@ class Viewer():
         cv.imwrite(ANNOTATED_PATH_JAI + filename + ".png", self.scaled_img)
         self.saved_files.append(ANNOTATED_PATH_JAI + filename + ".png")
         print("V: ANNOTATED saved ", ANNOTATED_PATH_JAI + filename + ".png")
+
+        #self.rs_cam.save_image(RGB_PATH_RS + filename + ".tiff")
+        #self.saved_files.append(RGB_PATH_RS + filename + ".tiff")
+        #print("V: RGB saved ", RGB_PATH_RS + filename + ".tiff")
 
         self.rs_cam.save_image(RGB_PATH_RS + filename + ".png")
         self.saved_files.append(RGB_PATH_RS + filename + ".png")
