@@ -63,7 +63,7 @@ class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
         self.jai_cam.LoadCustomCameraConfiguration = True
-        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_ideal_polarizingFilter.pvxml"
+        self.jai_cam.CameraConfigurationPath = "/home/vap/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_Ideal.pvxml"
         self.jai_cam.AdjustColors = False
         self.jai_cam.GainB = 2.84
         self.jai_cam.GainG = 1.0

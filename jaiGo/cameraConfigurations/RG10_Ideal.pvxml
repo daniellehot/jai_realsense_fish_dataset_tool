@@ -35,8 +35,8 @@
       <parameter name="ExposureMode">Timed</parameter>
       <parameter name="ExposureTime">99900</parameter>
       <parameter name="ExposureAuto">Continuous</parameter>
-      <parameter name="Gain[GainSelector:AnalogAll]">1.39062</parameter>
-      <parameter name="BlackLevel[BlackLevelSelector:DigitalAll]">-133</parameter>
+      <parameter name="Gain[GainSelector:AnalogAll]">1.0</parameter>
+      <parameter name="BlackLevel[BlackLevelSelector:DigitalAll]">0</parameter>
       <parameter name="BlackLevel[BlackLevelSelector:DigitalRed]">0</parameter>
       <parameter name="BlackLevel[BlackLevelSelector:DigitalBlue]">0</parameter>
       <parameter name="GainAuto">Continuous</parameter>
@@ -2405,7 +2405,7 @@
       <parameter name="PulseGeneratorClearSource[PulseGeneratorSelector:PulseGenerator0]">Low</parameter>
       <parameter name="PulseGeneratorClearInverter[PulseGeneratorSelector:PulseGenerator0]">0</parameter>
       <parameter name="PulseGeneratorClearSyncMode[PulseGeneratorSelector:PulseGenerator0]">AsyncMode</parameter>
-      <parameter name="ALCReference">50</parameter>
+      <parameter name="ALCReference">60</parameter>
       <parameter name="ALCAreaEnable[ALCAreaSelector:LowRight]">0</parameter>
       <parameter name="ALCAreaEnable[ALCAreaSelector:LowMidRight]">0</parameter>
       <parameter name="ALCAreaEnable[ALCAreaSelector:LowMidLeft]">0</parameter>

@@ -46,6 +46,12 @@ class RS_Camera():
         sensors = self.profile.get_device().query_sensors()
         for sensor in sensors:
             if sensor.is_depth_sensor():
+                
+                visualpreset = sensor.get_option_value_description(rs.option.visual_preset, 3)
+                if visualpreset == "High Accuracy":
+                    print("Visual preset " + str(visualpreset))
+                    sensor.set_option(rs.option.visual_preset, 3)
+                
                 sensor.set_option(rs.option.enable_auto_exposure, True) 
                 sensor.set_option(rs.option.laser_power, 360.0)
                 sensor.set_option(rs.option.emitter_enabled, 1)
