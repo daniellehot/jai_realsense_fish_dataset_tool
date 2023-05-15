@@ -6,7 +6,7 @@ import pyJaiGo as jai
 
 camera = jai.JaiGo()
 camera.LoadCustomCameraConfiguration = True
-camera.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_ideal_polarizingFilter.pvxml"
+camera.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_Ideal.pvxml"
 idx = 0
 try:
     camera.FindAndConnect()
@@ -14,7 +14,7 @@ try:
         camera.StartStream()
         while camera.Streaming:
             if camera.GrabImage():
-                cv.imshow("stream", camera.Img)
+                #cv.imshow("stream", camera.Img)
                 if (idx % 10 == 0):
                     camera.SaveImage("temp/image_" + str(idx) + ".tiff")
                 idx += 1

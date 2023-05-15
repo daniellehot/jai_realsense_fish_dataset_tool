@@ -397,42 +397,42 @@ bool JaiGo::SaveImage(const string path)
     }
     
     //cout << "==============" << endl;
-    if ( lPipelineResult.IsOK() && lOperationResult.IsOK() )
+    if ( lPipelineResult.IsOK() )
     {
-        cout << "JAI: Saving image to " << path << endl;
-        if (path.find(".bmp") != string::npos)
+        if ( lOperationResult.IsOK() )
         {
-            cout << "JAI: Save .bmp TODO" << endl;
+            cout << "JAI: Saving image to " << path << endl;
+            if (path.find(".bmp") != string::npos)
+            {
+                cout << "JAI: Save .bmp TODO" << endl;
+            }
+            else if (path.find(".tiff") != string::npos)
+            {
+                vector<int> imwriteTags = {cv::IMWRITE_TIFF_COMPRESSION, 1};
+                imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
+            }
+            else if (path.find(".png") != string::npos)
+            {
+                vector<int> imwriteTags = {cv::IMWRITE_PNG_COMPRESSION, 1};
+                imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
+            }
+            else if (path.find(".raw") != string::npos)
+            {
+                cout << "JAI: Save .raw TODO" << endl;
+            }
         }
-        else if (path.find(".tiff") != string::npos)
-        {
-            vector<int> imwriteTags = {cv::IMWRITE_TIFF_COMPRESSION, 1};
-            imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
-        }
-        else if (path.find(".png") != string::npos)
-        {
-            vector<int> imwriteTags = {cv::IMWRITE_PNG_COMPRESSION, 1};
-            imwrite(path.c_str(), JaiGo::GetCvImage(lBuffer, goalPixelType), imwriteTags);
-        }
-        else if (path.find(".raw") != string::npos)
-        {
-            cout << "JAI: Save .raw TODO" << endl;
-        }
-    }
-    else
-    {
-        if ( lPipelineResult.IsFailure()) 
-        {
-            cout << "   JAI ERROR: " << lPipelineResult.GetCodeString().GetAscii() << endl;
-        }
-
-        if ( lOperationResult.IsFailure() )
+        else
         {
             cout << "   JAI ERROR: " << lOperationResult.GetCodeString().GetAscii() << endl;
         }
+        
+        // Release the buffer back to the pipeline
+        this->Pipeline->ReleaseBuffer(lBuffer);
     }
-
-    //cout << "==============" << endl;
+    else
+    {
+        cout << "   JAI ERROR: " << lPipelineResult.GetCodeString().GetAscii() << endl;
+    }
     
     return true;
 }
