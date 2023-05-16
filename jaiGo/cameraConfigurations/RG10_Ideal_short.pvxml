@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<puregevpersistencefile version="1.0">
+  <device name="DeviceConfiguration" version="1.0">
+    <guid>14FB0117CBB1</guid>
+    <communication>
+      <parameter name="HeartbeatInterval">1000</parameter>
+      <parameter name="SICustomPayloadTransferSize">0</parameter>
+      <parameter name="DeviceGenICamXMLLocation">Default</parameter>
+      <parameter name="LinkRecoveryEnabled">0</parameter>
+    </communication>
+    <device>
+      <parameter name="Width">2464</parameter>
+      <parameter name="Height">2056</parameter>
+      <parameter name="PixelFormat">BayerRG10</parameter>
+      <parameter name="AcquisitionMode">Continuous</parameter>
+      <parameter name="AcquisitionFrameRate">10</parameter>
+      <parameter name="ExposureMode">Timed</parameter>
+      <parameter name="ExposureTime">99900</parameter>
+      <parameter name="ExposureAuto">Continuous</parameter>
+      <parameter name="Gain[GainSelector:AnalogAll]">1.0</parameter>
+      <parameter name="BlackLevel[BlackLevelSelector:DigitalAll]">0</parameter>
+      <parameter name="BlackLevel[BlackLevelSelector:DigitalRed]">0</parameter>
+      <parameter name="BlackLevel[BlackLevelSelector:DigitalBlue]">0</parameter>
+      <parameter name="GainAuto">Continuous</parameter>
+      <parameter name="BalanceWhiteAuto">Continuous</parameter>
+      <parameter name="JAIGamma">G060</parameter>
+      <parameter name="JAILUTMode">Off</parameter>
+      <parameter name="ALCReference">50</parameter>
+      <parameter name="ALCAreaEnableAll">1</parameter>
+      <parameter name="AutoShutterControlExposureMin">100</parameter>
+      <parameter name="AutoShutterControlExposureMax">99900</parameter>
+      <parameter name="AutoGainControlGainRawMin">100</parameter>
+      <parameter name="AutoGainControlGainRawMax">1600</parameter>
+      <parameter name="ALCControlSpeed">4</parameter>
+    </device>
+  </device>
+  <stream name="StreamConfiguration" version="1.0">
+    <guid>14FB0117CBB1</guid>
+    <channel>0</channel>
+    <parameters>
+      <parameter name="AbortCountedAsError">0</parameter>
+      <parameter name="TimestampSourcePreferred">Software</parameter>
+    </parameters>
+  </stream>
+</puregevpersistencefile>

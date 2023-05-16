@@ -107,7 +107,6 @@ class RS_Camera():
         self.depth_map = np.asanyarray(self.depth_frame.get_data())
         
         self.depth_frame = self.threshold_f.process(self.depth_frame)
-        #self.depth_map_color = cv.applyColorMap(cv.convertScaleAbs(self.depth_map, alpha=0.04), cv.COLORMAP_JET)
         #print("RS: Received depth map")
 
         self.pointcloud = self.get_colored_pointcloud()
@@ -158,10 +157,6 @@ class RS_Camera():
         cv.imwrite(path, self.depth_map, [cv.IMWRITE_PNG_COMPRESSION, 0])
 
     def save_intrinsics(self, path):
-        #intrinsics_json = json.dumps(self.intrinsics_dict)
-        #json_file = open(path,"w")
-        #json_file.write(intrinsics_json)
-        #json_file.close() 
         with open(path, 'w') as fp:
             json.dump(self.intrinsics_dict, fp)
 
@@ -173,7 +168,6 @@ class RS_Camera():
         self.Streaming = False
 
     def save_data_test(self):
-        #cv.imwrite("test.bmp", self.img)
         cv.imwrite("test.png", self.img, [cv.IMWRITE_PNG_COMPRESSION, 0])
         o3d.io.write_point_cloud("pc.ply", self.pointcloud)        
 

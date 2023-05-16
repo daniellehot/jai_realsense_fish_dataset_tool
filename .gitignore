@@ -210,11 +210,15 @@ pyrightconfig.json
 
 #CUSTOM 
 *.csv
+
+#Images and point cloud formats
 *.png
 *.ply
 *.bmp
 *.raw
 *.tiff
+*.jpeg
+
 viewer/data/*
 realsense/test_data/*
 heatmap/data

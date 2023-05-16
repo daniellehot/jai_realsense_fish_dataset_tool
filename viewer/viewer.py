@@ -63,7 +63,7 @@ class Viewer():
     def __init__(self):
         self.jai_cam = pyJaiGo.JaiGo()
         self.jai_cam.LoadCustomCameraConfiguration = True
-        self.jai_cam.CameraConfigurationPath = "/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_Ideal_wGamma.pvxml"
+        self.jai_cam.CameraConfigurationPath = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo/cameraConfigurations/RG10_Ideal_short.pvxml")
         self.jai_cam.AdjustColors = False
         self.jai_cam.GainB = 2.84
         self.jai_cam.GainG = 1.0
@@ -183,16 +183,19 @@ class Viewer():
         if self.show_heatmap:
             self.scaled_img = cv.addWeighted(self.scaled_img, 0.5, self.heatmapper.heatmap_img_colored, 0.5, 0.0)
         self.draw_annotations()
+        self.update_log()
+
         cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
-        if self.mode == "annotating": 
-                cv.setMouseCallback(self.window_title, self.get)
+        if self.saving:
+            cv.setMouseCallback(self.window_title, self.do_nothing)
+        elif self.mode == "annotating": 
+            cv.setMouseCallback(self.window_title, self.get)
         elif self.mode == "dragging":
             cv.setMouseCallback(self.window_title, self.drag)
         elif self.mode == "correcting": 
             cv.setMouseCallback(self.window_title, self.remove)
-
         cv.imshow(self.window_title, self.scaled_img)
-        self.update_log()
+        
         
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
@@ -244,6 +247,9 @@ class Viewer():
                     self.log_entry += 1
                     break
 
+    def do_nothing(self, event, x, y, flags, param):
+        pass
+
     def get_annotation(self):
         self.guiInstance = gui.AnnotationApp()
         while True:
@@ -263,10 +269,10 @@ class Viewer():
                 return id, species, side
             
     def check_for_double_entry(self, _species, _id, _side):
-        current_annotation = str(_species) + str(_id) + str(_side) 
-        for (species, id, side) in zip(self.species, self.ids, self.sides):
-            if current_annotation == (str(species) + str(id) + str(side) ):
-                print("Double annotation. Check annotation")
+        current_annotation = str(_species) + str(_id) 
+        for (species, id) in zip(self.species, self.ids):
+            if current_annotation == (str(species) + str(id)):
+                print("V ERROR: Double annotation. Check annotation")
                 return False
         return True
 

@@ -2,38 +2,15 @@ import cv2 as cv
 import numpy as np
 import os
 
-#TODO Blur and Morphology Kernel - why (21, 21)?
-#TODO Heatmap steps - why +40 and -20?
-#TODO heatmap_binary - why <150?
-
 class Heatmap():
     def __init__(self, path, image_dimensions):
-        #self.heatmap_time_series_path = os.path.join(path, "time_series")
-        #self.heatmap_colored_path = os.path.join(path, "heatmap_colored.png")
-        #self.heatmap_raw_path = os.path.join(path, "heatmap_raw.png")
-        #self.heatmap_overlapped_path = os.path.join(path, "heatmap_overlapped.png")
 
         self.img_dim = image_dimensions
         self.heatmap_img = np.zeros((self.img_dim[1], self.img_dim[0]), dtype=np.int16) #Correct for numpy's row major matrix representation
         self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
-        #self.load()
-
-    """
-    def load(self):
-        if os.path.exists(self.heatmap_raw_path):
-            print("HEATMAP: Data found at", self.heatmap_raw_path)
-            self.heatmap_img = cv.imread(self.heatmap_raw_path, cv.IMREAD_UNCHANGED)
-            self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
-            #IF NOT THE SAME SHAPE, CRY ME A RIVER
-        else:
-            print("HEATMAP: heatmap_raw.png does not exist. Data not found, initializing empty variable")
-            self.heatmap_img = np.zeros((self.img_dim[1], self.img_dim[0]), dtype=np.int16) #Correct for numpy's row major matrix representation
-            self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
-    """
 
     def update(self, image):
-        #print("HEATMAP: Computing a heatmap")
-        
+  
         #General processing
         image_resized = cv.resize(image, self.img_dim)
         image_gray = cv.cvtColor(image_resized, cv.COLOR_BGR2GRAY)
@@ -62,8 +39,6 @@ class Heatmap():
         self.heatmap_img = cv.GaussianBlur(self.heatmap_img, (15, 15), 0) 
         self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
         self.heatmap_img_overlapped = cv.addWeighted(image_resized, 0.5, self.heatmap_img_colored, 0.5, 0.0)
-
-        #cv.waitKey(0)
 
     def save_all(self, filename):
         #print("HEATMAP: Saving heatmap data")
