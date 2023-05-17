@@ -4,34 +4,46 @@ import os
 
 class Heatmap():
     def __init__(self, path, image_dimensions):
+        self.threshold = 110
+        self.blur_size = (21, 21)
+        self.kernel_size = (21, 21)
 
         self.img_dim = image_dimensions
         self.heatmap_img = np.zeros((self.img_dim[1], self.img_dim[0]), dtype=np.int16) #Correct for numpy's row major matrix representation
         self.heatmap_img_colored = cv.applyColorMap(self.heatmap_img.astype(np.uint8), cv.COLORMAP_JET)
 
+
+    def adjust_gamma(self, image, gamma):
+        invGamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** invGamma) * 255
+            for i in np.arange(0, 256)]).astype("uint8")
+        # apply gamma correction using the lookup table
+        return cv.LUT(image, table)
+
     def update(self, image):
   
         #General processing
         image_resized = cv.resize(image, self.img_dim)
+        #image_gamma_corrected = self.adjust_gamma(image_resized, gamma=0.9)
         image_gray = cv.cvtColor(image_resized, cv.COLOR_BGR2GRAY)
 
         #Blur the image
-        image_blurred = cv.GaussianBlur(image_gray, (21, 21), 0) 
-        #cv.imshow("blurred", blurred)
-        
+        image_blurred = cv.GaussianBlur(image_gray, self.blur_size, 0) 
+
         #Threshold image
         heatmap_binary = np.zeros(image_blurred.shape)
-        heatmap_binary[image_blurred < 150] = 1
+        heatmap_binary[image_gray < self.threshold] = 1
         #cv.imshow("heatmap", heatmap)
         
         #Open and close morphology
-        kernel = cv.getStructuringElement(cv.MORPH_RECT, (21, 21))
+        kernel = cv.getStructuringElement(cv.MORPH_RECT, self.kernel_size)
         heatmap_opened = cv.morphologyEx(heatmap_binary, cv.MORPH_OPEN, kernel)
         heatmap_closed = cv.morphologyEx(heatmap_opened, cv.MORPH_CLOSE, kernel)
 
         #Compute heatmap
         self.heatmap_img[heatmap_closed == 1] += 40 #hard punish for not moving fish, i.e. if fish are not sufficiently shuffled in 6 consecutive images, we get the highest heat
         self.heatmap_img[heatmap_closed == 0] -= 20 #low reward for moving fish, i.e. fish must be moved to a lot of new positions before the heat settles  
+
         #Ensure no byte overflow
         self.heatmap_img[self.heatmap_img > 255] = 255 
         self.heatmap_img[self.heatmap_img < 0] = 0
@@ -65,6 +77,12 @@ class Heatmap():
         cv.imwrite(filepath, self.heatmap_img_overlapped, [cv.IMWRITE_PNG_COMPRESSION, 0])
 
 
+def get_resized_dimension(scale_percent):
+    width = int(2464 * scale_percent / 100)
+    height = int(2056 * scale_percent / 100)
+    return (width, height)
+
+
 if __name__=="__main__":
     import shutil
     import random
@@ -73,23 +91,30 @@ if __name__=="__main__":
     if os.path.exists(HEATMAP_PATH):
         shutil.rmtree(HEATMAP_PATH)
         os.mkdir(HEATMAP_PATH)
-        os.mkdir(os.path.join(HEATMAP_PATH, "time_data"))
+        #os.mkdir(os.path.join(HEATMAP_PATH, "time_data"))
 
-    heatmap = Heatmap(HEATMAP_PATH, (1280, 720))
-
-    DATA_PATH = "data/jai/rgb"
+    DATA_PATH = "data/jai_tiff"
     image_paths = os.listdir(DATA_PATH)
-    image_paths = random.choices(image_paths, k=random.randint(10, 40))
+    #image_paths = random.choices(image_paths, k=random.randint(10, 40))
     
     idx = 1
-    for image_path in image_paths:
-        print("Iteration", idx)
-        img = cv.imread(os.path.join(DATA_PATH, image_path))
-        heatmap.update(image=img)
-        cv.imwrite(
-            os.path.join(HEATMAP_PATH, "time_data", str(idx)+".png"),
-            heatmap.heatmap_img_overlapped
-        )
-        idx += 1 
+    thresholds = list(range(100, 150, 5))
 
-    heatmap.save()
+    for threshold in thresholds:
+        print("=============")
+        print("Threshold", threshold)
+        heatmap = Heatmap(HEATMAP_PATH, get_resized_dimension(50))
+        heatmap.threshold = threshold
+        os.mkdir( os.path.join(HEATMAP_PATH, "time_data_" + str(threshold)) )
+        
+        for image_path in image_paths:
+            print("Iteration", idx)
+            img = cv.imread(os.path.join(DATA_PATH, image_path))
+            heatmap.update(image=img)
+            cv.imwrite(
+                os.path.join(HEATMAP_PATH, "time_data_" + str(threshold), str(idx)+".png"),
+                heatmap.heatmap_img_overlapped
+            )
+            idx += 1 
+
+    #heatmap.save()
