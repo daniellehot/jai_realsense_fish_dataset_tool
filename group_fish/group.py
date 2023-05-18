@@ -12,7 +12,7 @@ FISH_CATALOG = {
     "horse mack": 50
 }
 
-COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'yellow']
+COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'yellow', 'cyan', 'silver']
 BAR_COLORS = COLORS[:len(list(FISH_CATALOG.keys()))]
 
 GROUP_MIN = 15
@@ -26,16 +26,15 @@ class GroupGenerator():
 
     def draw_global_distribution(self):
         species = FISH_CATALOG.keys()
-        x_pos = np.arange(len(species))
+        #x_pos = np.arange(len(species))
         sizes =np.asarray(list(FISH_CATALOG.values()))
         sizes = sizes/sizes.sum(axis=0) * 100
-        plt.figure(figsize=(10,6))
-        plt.bar(x_pos, sizes, align='center', alpha=0.5)
-        plt.xticks(x_pos, species)
-        plt.ylabel('Percentage')
-        plt.title('Distribution')
+        
+        fig, ax = plt.subplots()
+        ax.set_xlabel("Species")
+        ax.set_ylabel("Percentage")
+        ax.bar(species, sizes, align='center', alpha=0.5, color = BAR_COLORS)
         plt.savefig("global_distribution.png")
-
     
     def draw_distribution_across_groups(self, species, color):
         fig, ax = plt.subplots()
@@ -51,11 +50,9 @@ class GroupGenerator():
         ax.set_xlabel("Group")
         #ax.set_xticks(np.arange(len(self.groups)))
         ax.set_ylabel("Percentage")
-        plt.savefig(species + ".png")
-    
+        plt.savefig(species + ".png") 
 
     def draw_distribution_across_groups_one_figure(self):
-        number_of_subplots = len(list(FISH_CATALOG.keys()))
         fig, axs = plt.subplots(len(list(FISH_CATALOG.keys())))
         fig.set_figheight(28)
         fig.set_figwidth(16)
@@ -73,7 +70,6 @@ class GroupGenerator():
             axs[ax_idx].set_ylabel("Percentage")
         #fig.legend(loc = "upper left")
         plt.savefig("distribution_across_groups.png")
-
         
     def draw_group_distribution(self, group):
         species = FISH_CATALOG.keys()
@@ -89,35 +85,21 @@ class GroupGenerator():
         plt.savefig("group.png")
 
     def draw_group_distributions(self):
+        #group_distributions = []
+        fig, ax = plt.subplots()
+        ax.set_xlabel("Group")
+        ax.set_ylabel("Distribution")
         for group in self.groups:
-            sizes = []
+            #group_distribution = []
+            distribution_sum = 0
             for species in FISH_CATALOG.keys():
                 number_of_instances = group.count(species)
-                sizes.append(number_of_instances/len(group)*100)
-
-            fig, ax = plt.subplots()
-            ax.bar(species, sizes, align='center', alpha = 0.5, label = bar_labels, color = bar_colors)
-
-        """
-        species = FISH_CATALOG.keys()
-        bar_labels = species
-        bar_colors = COLORS[:len(species)]
-            
-        fig, axs = plt.subplots(len(self.groups))
-        fig.set_figheight(20)
-        fig.set_figwidth(12)
-        for group in self.groups:
-            sizes = []
-            for fish in species:
-                number_of_instances = group.count(fish)
-                sizes.append(number_of_instances/len(group)*100)
-            
-
-            axs[self.groups.index(group)].bar(species, sizes, align='center', alpha = 0.5, label = bar_labels, color = bar_colors)
-            axs[self.groups.index(group)].set_title("Group " + str(self.groups.index(group)))
-        plt.savefig("group.png")
-        """
-
+                size = number_of_instances/len(group)*100
+                ax_color = COLORS[list(FISH_CATALOG.keys()).index(species)]
+                ax.bar(self.groups.index(group), size, bottom=distribution_sum, align="center", alpha=0.5, label = species, color = ax_color)
+                distribution_sum += size
+        ax.legend(list(FISH_CATALOG.keys()), loc='upper right')
+        plt.savefig("group_distributions.png")
       
     def get_all_fish(self):
         all_fish = []
@@ -158,7 +140,7 @@ if __name__=="__main__":
     for group in generator.groups: 
         group.sort()
         print("Group No.", generator.groups.index(group), "Number of fish", len(group), group)
-        #generator.draw_group_distribution(group)
+    print("===========================")
     
     #generator.draw_group_distribution(generator.groups[2])
     generator.draw_group_distributions()
