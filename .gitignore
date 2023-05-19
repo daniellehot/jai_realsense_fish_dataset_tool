@@ -220,6 +220,7 @@ pyrightconfig.json
 *.jpeg
 
 viewer/data/*
+viewer/*data*
 realsense/test_data/*
 heatmap/data
 heatmap/*.zip

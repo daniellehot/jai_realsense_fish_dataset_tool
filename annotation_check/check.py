@@ -32,8 +32,8 @@ def annotate_image(_img, _annotations):
 if __name__=="__main__":
     argParser = argparse.ArgumentParser()
     argParser.add_argument("-i", "--input", type=str, help="Path to the image")
-
     args = argParser.parse_args()
+
     img = cv.imread(args.input)
     annotations = get_annotations(args.input)
     annotate_image(img, annotations)

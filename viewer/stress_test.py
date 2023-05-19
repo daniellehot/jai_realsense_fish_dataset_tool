@@ -119,6 +119,7 @@ if __name__=="__main__":
                   )
 
             viewer_stress.show()
+            cv.waitKey(1)
             iteration += 1
 
         viewer_stress.jai_cam.CloseAndDisconnect()
