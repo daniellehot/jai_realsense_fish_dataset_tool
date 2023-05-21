@@ -5,16 +5,16 @@ import cv2
 import open3d as o3d
 import os
 
-ANNOTATIONS = ["depth_analysis_data/img2-11.json",
-               "depth_analysis_data/img12-21.json",
-               "depth_analysis_data/img22-31.json",
-               "depth_analysis_data/img32-41.json"
+ANNOTATIONS = ["annotations/img2-11.json",
+               "annotations/img12-21.json",
+               "annotations/img22-31.json",
+               "annotations/img32-41.json"
                ]
 
-CONDITIONS_DICT = {"depth_analysis_data/img2-11.json" : "default_no_background",
-               "depth_analysis_data/img12-21.json" : "default_background",
-               "depth_analysis_data/img22-31.json" : "high_acc_background",
-               "depth_analysis_data/img32-41.json" : "high_acc_no_background"
+CONDITIONS_DICT = {"annotations/img2-11.json" : "default_no_background",
+               "annotations/img12-21.json" : "default_background",
+               "annotations/img22-31.json" : "high_acc_background",
+               "annotations/img32-41.json" : "high_acc_no_background"
                }
 
 FISH = ["54haddock",
@@ -72,7 +72,7 @@ if __name__=="__main__":
 
             dot_products_all_categories = []
             for idx, path in enumerate(ANNOTATIONS):
-                print("Working on ", fish, CONDITIONS_DICT[path])
+                print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
                 query_cat_id = coco.getCatIds(fish)
                 query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
@@ -81,11 +81,11 @@ if __name__=="__main__":
                 dot_products_all_imgs = []
                 for i in range(len(query_imgs)):
                     mask = coco.annToMask(query_anns[i])
-                    #print(querryann["image_id"])
+                    # Sanity check for the annotation-image pair
                     if query_anns[i]["image_id"] != query_imgs[i]["id"]:
                         print("============")
                         print(query_anns[i]["image_id"])
-                        print(query_imgs[i]["id"], )
+                        print(query_imgs[i]["id"], query_imgs[i]["file_name"])
                         print("============")
                         exit(5)
 
@@ -94,7 +94,6 @@ if __name__=="__main__":
                         cv2.IMREAD_UNCHANGED
                         )
                     pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
-                    # Downsample pointcloud
                     downpcd = o3d.geometry.PointCloud.voxel_down_sample(pcd, voxel_size=0.0025)
                     dot_products_all_imgs += calculate_dot_product_of_normals(_pc=downpcd)
 
@@ -103,7 +102,7 @@ if __name__=="__main__":
 
             fig.legend(ncols=2, prop={'size': 5})
             fig.tight_layout()
-            fig.savefig(os.path.join("data", fish+".pdf" ))
+            fig.savefig(os.path.join("output", fish+".pdf" ))
             
             fig_combined, ax_combined = plt.subplots()
             ax_combined.set_title(fish)
@@ -113,7 +112,7 @@ if __name__=="__main__":
            
             fig_combined.legend(ncols=2, prop={'size': 5})
             fig_combined.tight_layout()
-            fig_combined.savefig(os.path.join("data", fish+"_combined.pdf" ))
+            fig_combined.savefig(os.path.join("output", fish+"_combined.pdf" ))
         
             
     

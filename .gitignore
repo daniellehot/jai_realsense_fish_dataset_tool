@@ -221,6 +221,10 @@ pyrightconfig.json
 
 viewer/data/*
 viewer/*data*
+
 realsense/test_data/*
+
 heatmap/data
 heatmap/*.zip
+
+depth_analysis_tools/depth_analysis_data
