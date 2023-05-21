@@ -12,8 +12,8 @@ ANNOTATIONS = ["depth_analysis_data/img2-11.json",
                ]
 
 CONDITIONS_DICT = {"depth_analysis_data/img2-11.json" : "default_no_background",
-               "depth_analysis_data/img12-21.json" : "defaul_backgroud",
-               "depth_analysis_data/img22-31.json" : "high_acc_backgroud",
+               "depth_analysis_data/img12-21.json" : "default_background",
+               "depth_analysis_data/img22-31.json" : "high_acc_background",
                "depth_analysis_data/img32-41.json" : "high_acc_no_background"
                }
 
@@ -74,18 +74,21 @@ if __name__=="__main__":
             for idx, path in enumerate(ANNOTATIONS):
                 print("Working on ", fish, CONDITIONS_DICT[path])
                 coco = COCO(path)
-                query_id = coco.getCatIds(fish)
-                query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_id) )
-                query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_id) )
+                query_cat_id = coco.getCatIds(fish)
+                query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
+                query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_cat_id) )
 
                 dot_products_all_imgs = []
                 for i in range(len(query_imgs)):
                     mask = coco.annToMask(query_anns[i])
+                    #print(querryann["image_id"])
                     if query_anns[i]["image_id"] != query_imgs[i]["id"]:
                         print("============")
                         print(query_anns[i]["image_id"])
-                        print(query_imgs[i]["id"])
+                        print(query_imgs[i]["id"], )
                         print("============")
+                        exit(5)
+
                     depth_img = cv2.imread(
                         os.path.join("depth_analysis_data/data/rs/depth", query_imgs[i]["file_name"]),
                         cv2.IMREAD_UNCHANGED
@@ -101,13 +104,17 @@ if __name__=="__main__":
             fig.legend(ncols=2, prop={'size': 5})
             fig.tight_layout()
             fig.savefig(os.path.join("data", fish+".pdf" ))
-        
+            
             fig_combined, ax_combined = plt.subplots()
             ax_combined.set_title(fish)
             for idx, dot_products_cat in enumerate(dot_products_all_categories):
-                ax_combined.hist(dot_products_cat, bins=20, alpha=0.5,  histtype='step', density=False, color = PLOT_COLORS[idx], label=CONDITIONS_DICT[path])
+                plot_label = list(CONDITIONS_DICT.values())[idx]
+                ax_combined.hist(dot_products_cat, bins=20, alpha=0.5,  histtype='step', density=False, color = PLOT_COLORS[idx], label=plot_label)
+           
             fig_combined.legend(ncols=2, prop={'size': 5})
             fig_combined.tight_layout()
             fig_combined.savefig(os.path.join("data", fish+"_combined.pdf" ))
+        
+            
     
     
