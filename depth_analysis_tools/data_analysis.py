@@ -49,7 +49,7 @@ def depth_map_to_masked_pc(_img, _mask):
     return pcd
 
 
-def calculate_dot_product_of_normals(_pc):
+def calculate_dot_product_of_normals(_pc, _mode):
     # Calculate surface normals
     o3d.geometry.PointCloud.estimate_normals(_pc, search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.01, max_nn=30))
     o3d.geometry.PointCloud.orient_normals_to_align_with_direction(_pc, orientation_reference=np.array([0.0,0.0, -1.0]))
@@ -58,14 +58,31 @@ def calculate_dot_product_of_normals(_pc):
     dot_products = []
     for p_idx in range(len(downpcd.points)):
         [k, idx, _] = pcd_tree.search_radius_vector_3d(_pc.points[p_idx], 0.01)
-        inlier_cloud = _pc.select_by_index(idx)
-        plane_n = np.asarray(_pc.normals[p_idx])
-        normals_np = np.asarray(inlier_cloud.normals)
-        dot_plane = normals_np.dot(plane_n)
-        dot_products.append(np.min(dot_plane))
+        #Remove the source point from the neighbourhood, otherwise we have at least one normal guaranteed to equal 1
+        idx.remove(p_idx)
+        
+        if len(idx) != 0:
+            inlier_cloud = _pc.select_by_index(idx)
+            plane_n = np.asarray(_pc.normals[p_idx])
+            normals_np = np.asarray(inlier_cloud.normals)
+            dot_plane = normals_np.dot(plane_n)
+            
+            if _mode == 'min':
+                dot_products.append(np.min(dot_plane))
+
+            if _mode == "avg":
+                dot_products.append(np.mean(dot_plane))
+                
+            if _mode == "all":
+                dot_products += list(dot_plane)
+
     return dot_products
 
+
 if __name__=="__main__":
+        if not os.path.exists("output"):
+            os.mkdir("output")
+        
         for fish in FISH:
             fig, ax = plt.subplots(4)
             ax[0].set_title(fish)
@@ -95,7 +112,7 @@ if __name__=="__main__":
                         )
                     pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
                     downpcd = o3d.geometry.PointCloud.voxel_down_sample(pcd, voxel_size=0.0025)
-                    dot_products_all_imgs += calculate_dot_product_of_normals(_pc=downpcd)
+                    dot_products_all_imgs += calculate_dot_product_of_normals(_pc=downpcd, _mode="avg")
 
                 dot_products_all_categories.append(dot_products_all_imgs)
                 ax[idx].hist(dot_products_all_imgs, bins=20, alpha=0.5, density=False, color = PLOT_COLORS[idx], label=CONDITIONS_DICT[path])
