@@ -1,0 +1,155 @@
+from  pycocotools.coco import COCO
+import matplotlib.pyplot as plt
+import numpy as np
+import cv2
+import open3d as o3d
+import os
+from pyemd import emd_samples
+from scipy.stats import chisquare
+
+ANNOTATIONS = ["annotations/img2-11.json",
+               "annotations/img12-21.json",
+               "annotations/img22-31.json",
+               "annotations/img32-41.json"
+               ]
+
+ANNOTATIONS = ["annotations/img32-41.json"]
+
+
+CONDITIONS_DICT = {"annotations/img2-11.json" : "default_no_background",
+               "annotations/img12-21.json" : "default_background",
+               "annotations/img22-31.json" : "high_acc_background",
+               "annotations/img32-41.json" : "high_acc_no_background"
+               }
+
+FISH = ["54haddock",
+        "23cod",
+        "10saithe",
+        "5cod",
+        "2cod"
+        ]
+
+PLOT_COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'black', 'cyan', 'magenta', 'saddlebrown', 'olive']
+
+RS_INTRINSICS = o3d.camera.PinholeCameraIntrinsic( 1920, #width
+                                                1080, #height
+                                                1386.84, #fx
+                                                1385.35, #fy
+                                                928.33, #cx
+                                                537.03 #cy
+                                                ) 
+
+
+def depth_map_to_masked_pc(_img, _mask):
+    # Apply max depth threshold
+    max_depth = 1200
+    _img[_img > max_depth] = max_depth
+
+    # Mask image and convert to open3d image
+    masked_depth = _img * _mask
+    o3_image = o3d.geometry.Image(masked_depth)
+
+    # Convert image to pointcloud
+    pcd = o3d.geometry.PointCloud.create_from_depth_image(o3_image, RS_INTRINSICS)
+    return pcd
+
+
+def estimate_plane(_img):
+    max_depth = 1200
+    _img[_img > max_depth] = max_depth
+    o3_depth_image = o3d.geometry.Image(_img)
+    pcd = o3d.geometry.PointCloud.create_from_depth_image(o3_depth_image, RS_INTRINSICS)
+    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+    #[a, b, c, d] = plane_model
+    #print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
+    """
+    plane_cloud = pcd.select_by_index(inliers)
+    inlier_cloud.paint_uniform_color([1.0, 0, 0])
+    outlier_cloud = pcd.select_by_index(inliers, invert=True)
+    o3d.visualization.draw_geometries([inlier_cloud, outlier_cloud],
+                                    zoom=0.8,
+                                    front=[-0.4999, -0.1659, -0.8499],
+                                    lookat=[2.1813, 2.0619, 2.0999],
+                                    up=[0.1204, -0.9852, 0.1215])
+    """
+    return plane_model
+
+
+def calculate_distances(_plane, _fish):
+    #print(_fish.shape)
+    #print( (np.ones(_fish.shape[0])))
+    fish_points = np.c_[ _fish, np.ones(_fish.shape[0]) ]
+    [a, b, c, d] = _plane
+    plane = np.asarray([a, b, c, d])
+    #print("plane")
+    #print(plane)
+    #print("np.abs(fish_points.dot(plane))")
+    #print(np.abs(fish_points.dot(plane)))
+    #print("np.linalg.norm(plane[:3])")
+    #print(np.linalg.norm(plane[:3]))
+
+    distances = np.abs(fish_points.dot(plane)) / np.linalg.norm(plane[:3])
+    return distances
+
+if __name__=="__main__":
+        VOXEL_SIZE = 0.0025
+        OUTPUT_FOLDER = "height_analysis"
+        if not os.path.exists(OUTPUT_FOLDER):
+            os.mkdir(OUTPUT_FOLDER)
+
+        for idx, path in enumerate(ANNOTATIONS):
+            
+            for fish in FISH:
+                fig_fish_combined, ax_fish_combined = plt.subplots()
+                fig_fish, ax_fish = plt.subplots(2,5)
+                print("Working on ", fish, CONDITIONS_DICT[path], path)
+                coco = COCO(path)
+                query_cat_id = coco.getCatIds(fish)
+                query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
+                query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_cat_id) )
+                
+                histograms, bins = [], []
+                heights = []
+                for i in range(len(query_imgs)):
+                    # Sanity check for the annotation-image pair
+                    if query_anns[i]["image_id"] != query_imgs[i]["id"]:
+                        print("============")
+                        print(query_anns[i]["image_id"])
+                        print(query_imgs[i]["id"], query_imgs[i]["file_name"])
+                        print("============")
+                        exit(5)
+                    
+                    mask = coco.annToMask(query_anns[i])
+                    depth_img = cv2.imread(
+                        os.path.join("depth_analysis_data/data/rs/depth", query_imgs[i]["file_name"]),
+                        cv2.IMREAD_UNCHANGED
+                        )
+                    plane_model = estimate_plane(_img = depth_img)
+                    fish_pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
+                    fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
+                    height_points = calculate_distances(plane_model, np.asarray(fish_pcd.points))
+                    height_hist, bin_edges = np.histogram(height_points, density=True)
+                    heights.append(height_points)
+                    histograms.append(height_hist)
+                    bins.append(bin_edges)
+                    #print(height_hist)
+                    #print(bin_edges)
+                    #print(len(height_hist))
+                    #print("=========0")
+
+                for i in range(len(histograms)):
+                    chi2, p = chisquare(histograms[0], f_exp=histograms[i])
+                    print(chi2, p)
+                    emd_val = emd_samples(histograms[0], histograms[i])
+                    print(emd_val)
+                exit(10)
+
+                fig_fish.legend(ncols=2, prop={'size': 5})
+                #fig_fish.tight_layout()
+                fig_fish.savefig(os.path.join(OUTPUT_FOLDER, fish + "_per_img.pdf" ))        #ax_fish[i].hist(height_points, bins=10, alpha=0.5,  density=True, color = PLOT_COLORS[idx], label=)
+                    #downpcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE)
+        
+#https://safjan.com/metrics-to-compare-histograms/
+#https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
+#https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use
+#https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use

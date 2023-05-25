@@ -36,8 +36,12 @@ RS_INTRINSICS = o3d.camera.PinholeCameraIntrinsic( 1920, #width
 
 
 def calculate_angles_between_vectors(dot_product, a, b):
-    norm_a = np.linalg.norm(a)
-    norm_b = np.linalg.norm(b, axis=1)
+    dot_product = np.around(dot_product, 4)
+    norm_a = np.around(np.linalg.norm(a), 4)
+    norm_b = np.around(np.linalg.norm(b, axis=1), 4)
+    if (np.any(dot_product < -1) or np.any(dot_product > 1)):
+        print(dot_product)
+        exit(5)
     angles = np.arccos(dot_product/(norm_a*norm_b))
     return angles
     #return np.arccos(a.dot(b)/(np.linalg.norm(a)*np.linalg.norm(b)))
@@ -77,8 +81,12 @@ def calculate_angles(_pc, _mode):
             dot_products = neighbourhood_normals.dot(base_normal)
             #print(dot_products)
             all_angles = np.degrees(calculate_angles_between_vectors(dot_products, base_normal, neighbourhood_normals))
-            #arccos returns nan when dot product equals 1 because norm_a*norm_b doesnt add up to 1 but to 0.99999999
-            all_angles[dot_products == 1] = 0
+            
+            #arccos returns nan when dot product equals 1 because norm_a*norm_b doesnt add up to 1 but to 0.99999999, meaning arccos = (1/0.99) = 1.01 
+            #all_angles[dot_products >= 1] = 0
+            #all_angles[dot_products <= -1] = 180
+            #print("dot_products nan")
+            #print(dot_products[np.isnan(all_angles)])
             
             if _mode == 'min':
                 angles.append(np.min(all_angles))
@@ -91,6 +99,43 @@ def calculate_angles(_pc, _mode):
 
     return angles
 
+
+def sort_angles(angles):
+
+    angles_np = np.asarray(angles)
+    #angles_np = angles_np[~np.isnan(angles_np)]
+    #Sanity check, arccos should return the smaller angle between two vectors, meaning it cant be a negative value
+    
+    #angles_np_negative = angles_np[angles_np < 0].nonzero()
+    #if (np.isangles_np_negative):
+    #    print(angles_np_negative)
+    #    print("negative angle between vectors")
+    #   exit(5)
+    
+    # Angles under 15 degrees, good match 
+    angles_under_15 = np.where(angles_np <= 15, angles_np, -1)
+    angles_under_15 = angles_under_15[angles_under_15 != -1]
+
+    # Angles under 15 degrees, medium match 
+    angles_under_30 = np.where(angles_np <= 30, angles_np, -1)
+    angles_under_30 = np.where(angles_under_30 > 15, angles_under_30, -1)
+    angles_under_30 = angles_under_30[angles_under_30 != -1]
+
+    ## Angles over 30 degrees, poor match 
+    angles_over_30 = np.where(angles_np > 30, angles_np, -1)
+    angles_over_30 = angles_over_30[angles_over_30 != -1]
+
+    disributions = [0, 0, 0] #under 15, under 30, over 30
+    disributions[0] = angles_under_15.size/angles_np.size * 100
+    disributions[1] = angles_under_30.size/angles_np.size * 100
+    disributions[2] = angles_over_30.size/angles_np.size * 100
+    disributions = np.around(disributions, 2)
+
+    #print(angles_np.size - angles_under_15.size - angles_under_30.size - angles_over_30.size)
+    #print(disributions)
+    #print("sum distributions", sum(disributions))
+    
+    return disributions
 
 def calculate_dot_product_of_normals(_pc, _mode):
     # Calculate surface normals
@@ -123,6 +168,9 @@ def calculate_dot_product_of_normals(_pc, _mode):
 
 
 if __name__=="__main__":
+        VOXEL_SIZE = 0.0025
+        #VOXEL_SIZE = 0.0100
+
         OUTPUT_FOLDER = "angle_avg_all_fish"
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
@@ -130,15 +178,13 @@ if __name__=="__main__":
         fig_combined, ax_combined = plt.subplots()
         fig_avg, ax_avg = plt.subplots()
         fig_individual, ax_individual = plt.subplots(4)
-
+        
+        distributions_per_cat = []
         for idx, path in enumerate(ANNOTATIONS):
             dot_products_cat =[] 
             no_of_points = []
 
             angles_per_cat = []
-            angles_under_15 = []
-            angles_under_30 = []
-            angles_other = []
             for fish in FISH:
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
@@ -161,21 +207,36 @@ if __name__=="__main__":
                         cv2.IMREAD_UNCHANGED
                         )
                     pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
-                    downpcd = o3d.geometry.PointCloud.voxel_down_sample(pcd, voxel_size=0.0025)
+                    downpcd = o3d.geometry.PointCloud.voxel_down_sample(pcd, voxel_size=VOXEL_SIZE)
                     angles_per_cat += calculate_angles(_pc = downpcd, _mode="avg")
+            
 
                     #angles_per_cat.append( calculate_angles(_pc = downpcd, _mode="avg") )
             
-            #print("max", max(angles_per_cat))
-            #print("min", min(angles_per_cat))
-            #exit(5)
+            distributions_per_cat.append(sort_angles(angles_per_cat))
         
-            #ax_avg.bar(CONDITIONS_DICT[path], np.mean(np.asarray(no_of_points)), alpha=0.5, color = PLOT_COLORS[idx], label=CONDITIONS_DICT[path])
-            #ax_avg.set_xticks([])
             ax_individual[idx].hist(angles_per_cat, bins=12, alpha=0.5,  histtype='step', density=True, color = PLOT_COLORS[idx], label=CONDITIONS_DICT[path])
             ax_combined.hist(angles_per_cat, bins=12, alpha=0.5,  histtype='step', density=True, color = PLOT_COLORS[idx], label=CONDITIONS_DICT[path])
             ax_individual[idx].set_xticks(np.arange(0, 180, 15))
             ax_combined.set_xticks(np.arange(0, 180, 15))
+        
+
+        fig_bar, ax_bar = plt.subplots()
+        bar_x_axis_ticks = ["<15", "<15, 30>", ">30"]
+        x = np.arange(len(bar_x_axis_ticks))  # the label locations
+        width = 0.1  # the width of the bars
+        multiplier = 0
+
+        for idx, distribution in enumerate(distributions_per_cat):
+            offset = width * multiplier
+            rects = ax_bar.bar(x + offset, distribution, width, alpha = 0.5, color = PLOT_COLORS[idx], label=list(CONDITIONS_DICT.values())[idx])
+            ax_bar.bar_label(rects, padding=3, fontsize = 5)
+            multiplier += 1
+        ax_bar.set_xticks(x + width, bar_x_axis_ticks)
+
+        fig_bar.legend(ncols=2, prop={'size': 5})
+        fig_bar.tight_layout()
+        fig_bar.savefig(os.path.join(OUTPUT_FOLDER, "bar.pdf" ))
 
         fig_combined.legend(ncols=4, prop={'size': 5})
         fig_combined.tight_layout()
