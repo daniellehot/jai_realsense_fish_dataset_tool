@@ -3,6 +3,7 @@ from pyemd import emd_with_flow
 import random as rnd
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy.spatial import distance
 
 class SampleData:
     def __init__(self, id):
@@ -13,6 +14,9 @@ class SampleData:
         
         self.data = np.add(perfect_data, noise)
         self.freq, self.bins = np.histogram(self.data, bins=6, density=True)
+        self.bins_centers = 0.5 * (self.bins[1:] + self.bins[:-1])
+        print("len freq", len(self.freq))
+        print("len bins_centers", len(self.bins_centers))
         self.mean = np.mean(self.data)
         self.std = np.std(self.data)
         self.range = np.max(self.data) - np.min(self.data)
@@ -22,13 +26,14 @@ class SampleData:
 
         self.emd_values = []
 
+
     def compute_histogram(self):  
         self.fig, self.ax = plt.subplots()
         self.ax.hist(self.data, bins=6, alpha=0.5, density=True, color=self.plot_color, label = self.plot_label)
         self.ax.set_xticks(np.around(self.bins, 2))
         self.ax.grid(axis='x')
         
-
+"""
 def compute_distance_matrix(locations, show = False):
     distance_matrix = np.eye(len(locations))
     for i in range(len(locations)):
@@ -38,6 +43,36 @@ def compute_distance_matrix(locations, show = False):
         locations = np.around(locations, 2)
         print(pd.DataFrame(distance_matrix.round(1), index=np.arange(1, len(locations)+1), columns=np.arange(1, len(locations)+1)))
     return distance_matrix.astype(np.float64)
+"""
+def compute_euclidean_distance(x, y):
+    return np
+
+
+def compute_distance_matrix(data_1, data_2, show = False):
+    freq_distances = (data_1.freq - data_2.freq)**2
+    print(np.around(data_1.freq, 2))
+    print(np.around(data_2.freq, 2))
+    print(freq_distances)
+    print(len(freq_distances))
+    print("=============")
+    bins_distances = (data_1.bins_centers - data_2.bins_centers)**2
+    print(np.around(data_1.bins, 2))
+    print(np.around(data_2.bins,2))
+    print(np.around(bins_distances,2))
+    print(len(bins_distances))
+    print("=============")
+    
+    distance_matrix = np.eye(len(freq_distances))
+    for i in range(len(freq_distances)):
+        for j in range(len(freq_distances)):
+            distance_matrix[i,j] = np.sqrt(freq_distances[i]+bins_distances[j])
+            
+    print(distance_matrix)
+    if show:
+        print(distance_matrix.shape)
+        print(pd.DataFrame(distance_matrix.round(1), index=np.arange(1, len(freq_distances)+1), columns=np.arange(1, len(freq_distances)+1)))
+    return distance_matrix.astype(np.float64)
+
 
 def compute_emd(hist_1, hist_2, distance_matrix):
     hist_1 = hist_1.astype(np.float64)
@@ -48,13 +83,13 @@ def compute_emd(hist_1, hist_2, distance_matrix):
 
 if __name__=="__main__":
     data_entries = []
-    data_locations = []
-    for i in range(6):
+    data_entries_no = 6
+    for i in range(data_entries_no):
         data_entries.append(SampleData(i+1))
-        data_locations.append(data_entries[i].mean)
     
-    distance_matrix = compute_distance_matrix(data_locations, show = True)
-
+    distance_matrix = compute_distance_matrix(data_entries[1], data_entries[2], show = True)
+    exit(6)
+    """
     fig, axs = plt.subplots(len(data_entries))
     for i in range(len(data_entries)):
         for j in range(len(data_entries)):
@@ -88,3 +123,4 @@ if __name__=="__main__":
     #fig.legend()
     #fig.tight_layout()
     #plt.show()
+    """

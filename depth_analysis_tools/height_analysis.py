@@ -4,16 +4,14 @@ import numpy as np
 import cv2
 import open3d as o3d
 import os
-from pyemd import emd_samples
-from scipy.stats import chisquare
+from pyemd import emd_with_flow
+import pandas as pd
 
 ANNOTATIONS = ["annotations/img2-11.json",
                "annotations/img12-21.json",
                "annotations/img22-31.json",
                "annotations/img32-41.json"
                ]
-
-ANNOTATIONS = ["annotations/img32-41.json"]
 
 
 CONDITIONS_DICT = {"annotations/img2-11.json" : "default_no_background",
@@ -91,25 +89,70 @@ def calculate_distances(_plane, _fish):
     distances = np.abs(fish_points.dot(plane)) / np.linalg.norm(plane[:3])
     return distances
 
+
+def generate_signatures(freq1, bins1, freq2, bins2, normalize):
+    if normalize:
+        freq1 = freq1/sum(freq1) * 100
+        freq2 = freq2/sum(freq2) * 100
+    all_bins = list(np.concatenate((bins1, bins2)))
+    distribution1_sig = np.concatenate((freq1, np.zeros(len(bins2))))
+    distribution2_sig = np.concatenate((np.zeros(len(bins1)), freq2))
+
+    #print("============")
+    #print(all_bins)
+    #print(np.concatenate((freq1, freq2)))
+    #print("============")
+    #print(distribution1_sig)
+    #print("============")
+    #print(distribution2_sig)
+    #print("============")
+    return all_bins, distribution1_sig, distribution2_sig
+
+
+def compute_dist_matrix(positions):
+    dist_matrix = np.eye(len(positions))
+    for i in range(len(positions)):
+        for j in range(len(positions)):
+            dist_matrix[i, j] = np.abs(positions[i]-positions[j])
+    return dist_matrix
+
+
+def calculate_emd(freq1, bins1, freq2, bins2, normalize):
+    all_bins, signature_1, signature_2 = generate_signatures(freq1, bins1, freq2, bins2, normalize)
+
+    distance_matrix = compute_dist_matrix(all_bins)
+    #print(pd.DataFrame(distance_matrix.round(5), index=np.around(all_bins, 4), columns=np.around(all_bins, 4)))
+
+    first_signature = np.array(signature_1, dtype=np.double)
+    second_signature = np.array(signature_2, dtype=np.double)
+    distances = np.array(distance_matrix, dtype=np.double)
+    emd, flow = emd_with_flow(first_signature, second_signature, distances)
+    flow = np.array(flow)
+    return emd
+
+
 if __name__=="__main__":
         VOXEL_SIZE = 0.0025
         OUTPUT_FOLDER = "height_analysis"
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
 
+        fig, ax = plt.subplots(4)
+        fig_avg, ax_avg = plt.subplots()
         for idx, path in enumerate(ANNOTATIONS):
-            
+            emd_means, emd_stds = [], []
+
             for fish in FISH:
-                fig_fish_combined, ax_fish_combined = plt.subplots()
-                fig_fish, ax_fish = plt.subplots(2,5)
+                #fig_fish_combined, ax_fish_combined = plt.subplots()
+                #fig_fish, ax_fish = plt.subplots(2,5)
+                
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
                 query_cat_id = coco.getCatIds(fish)
                 query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
                 query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_cat_id) )
                 
-                histograms, bins = [], []
-                heights = []
+                freqs, bins = [], []
                 for i in range(len(query_imgs)):
                     # Sanity check for the annotation-image pair
                     if query_anns[i]["image_id"] != query_imgs[i]["id"]:
@@ -127,28 +170,31 @@ if __name__=="__main__":
                     plane_model = estimate_plane(_img = depth_img)
                     fish_pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
-                    height_points = calculate_distances(plane_model, np.asarray(fish_pcd.points))
-                    height_hist, bin_edges = np.histogram(height_points, density=True)
-                    heights.append(height_points)
-                    histograms.append(height_hist)
-                    bins.append(bin_edges)
-                    #print(height_hist)
-                    #print(bin_edges)
-                    #print(len(height_hist))
-                    #print("=========0")
+                    height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
+                    height_freqs, height_bins = np.histogram(height_profile, bins=10, density=True)
+                    height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
+                    freqs.append(height_freqs)
+                    bins.append(height_bins_centers)
+                
+                emd_values = []
+                for i in range(len(freqs)):
+                    for j in range(len(freqs)):
+                        if i != j:
+                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = False))
 
-                for i in range(len(histograms)):
-                    chi2, p = chisquare(histograms[0], f_exp=histograms[i])
-                    print(chi2, p)
-                    emd_val = emd_samples(histograms[0], histograms[i])
-                    print(emd_val)
-                exit(10)
+                emd_means.append(np.mean(emd_values))
+                emd_stds.append(np.std(emd_values))
+            
+            plot_colors = PLOT_COLORS[:len(emd_means)]
+            ax[idx].errorbar(FISH, emd_means, emd_stds, fmt='o', ecolor = plot_colors)
+            ax[idx].set_title(CONDITIONS_DICT[path])
 
-                fig_fish.legend(ncols=2, prop={'size': 5})
-                #fig_fish.tight_layout()
-                fig_fish.savefig(os.path.join(OUTPUT_FOLDER, fish + "_per_img.pdf" ))        #ax_fish[i].hist(height_points, bins=10, alpha=0.5,  density=True, color = PLOT_COLORS[idx], label=)
-                    #downpcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE)
-        
+            ax_avg.errorbar(CONDITIONS_DICT[path], np.mean(emd_means), np.mean(emd_stds), fmt='o', ecolor = PLOT_COLORS[idx])
+
+        fig.tight_layout()
+        fig_avg.tight_layout()
+        fig_avg
+        plt.show()
 #https://safjan.com/metrics-to-compare-histograms/
 #https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
 #https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use
