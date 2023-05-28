@@ -4,7 +4,7 @@ import numpy as np
 import cv2
 import open3d as o3d
 import os
-from pyemd import emd_with_flow
+from pyemd import emd_with_flow, emd
 import pandas as pd
 
 ANNOTATIONS = ["annotations/img2-11.json",
@@ -96,7 +96,7 @@ def generate_signatures(freq1, bins1, freq2, bins2, normalize):
         freq2 = freq2/sum(freq2) * 100
     all_bins = list(np.concatenate((bins1, bins2)))
     distribution1_sig = np.concatenate((freq1, np.zeros(len(bins2))))
-    distribution2_sig = np.concatenate((np.zeros(len(bins1)), freq2))
+    distribution2_sig = np.concatenate((np.zeros(len(bins2)), freq2))
 
     #print("============")
     #print(all_bins)
@@ -126,9 +126,10 @@ def calculate_emd(freq1, bins1, freq2, bins2, normalize):
     first_signature = np.array(signature_1, dtype=np.double)
     second_signature = np.array(signature_2, dtype=np.double)
     distances = np.array(distance_matrix, dtype=np.double)
-    emd, flow = emd_with_flow(first_signature, second_signature, distances)
-    flow = np.array(flow)
-    return emd
+    #emd_value, flow = emd_with_flow(first_signature, second_signature, distances)
+    #flow = np.array(flow)
+    emd_value = emd(first_signature, second_signature, distances)
+    return emd_value
 
 
 if __name__=="__main__":
@@ -139,9 +140,11 @@ if __name__=="__main__":
 
         fig, ax = plt.subplots(4)
         fig_avg, ax_avg = plt.subplots()
+        fig_emd, ax_emd = plt.subplots(4)
+
         for idx, path in enumerate(ANNOTATIONS):
             emd_means, emd_stds = [], []
-
+            
             for fish in FISH:
                 #fig_fish_combined, ax_fish_combined = plt.subplots()
                 #fig_fish, ax_fish = plt.subplots(2,5)
@@ -167,11 +170,11 @@ if __name__=="__main__":
                         os.path.join("depth_analysis_data/data/rs/depth", query_imgs[i]["file_name"]),
                         cv2.IMREAD_UNCHANGED
                         )
-                    plane_model = estimate_plane(_img = depth_img)
                     fish_pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
+                    plane_model = estimate_plane(_img = depth_img)
                     height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
-                    height_freqs, height_bins = np.histogram(height_profile, bins=10, density=True)
+                    height_freqs, height_bins = np.histogram(height_profile, bins=10, density=False)
                     height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
                     freqs.append(height_freqs)
                     bins.append(height_bins_centers)
@@ -180,11 +183,14 @@ if __name__=="__main__":
                 for i in range(len(freqs)):
                     for j in range(len(freqs)):
                         if i != j:
-                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = False))
+                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = True))
 
                 emd_means.append(np.mean(emd_values))
                 emd_stds.append(np.std(emd_values))
-            
+                            
+                ax_emd[idx].scatter([fish]*len(emd_values), emd_values, color = PLOT_COLORS[FISH.index(fish)])
+                ax_emd[idx].set_title(CONDITIONS_DICT[path])
+
             plot_colors = PLOT_COLORS[:len(emd_means)]
             ax[idx].errorbar(FISH, emd_means, emd_stds, fmt='o', ecolor = plot_colors)
             ax[idx].set_title(CONDITIONS_DICT[path])
@@ -193,8 +199,9 @@ if __name__=="__main__":
 
         fig.tight_layout()
         fig_avg.tight_layout()
-        fig_avg
-        plt.show()
+        fig_emd.tight_layout()
+        fig_emd.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("emd_notNormalized.pdf" )))
+        #plt.show()
 #https://safjan.com/metrics-to-compare-histograms/
 #https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
 #https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use
