@@ -121,8 +121,8 @@ def calculate_emd(freq1, bins1, freq2, bins2, normalize):
     all_bins, signature_1, signature_2 = generate_signatures(freq1, bins1, freq2, bins2, normalize)
 
     distance_matrix = compute_dist_matrix(all_bins)
-    #print(pd.DataFrame(distance_matrix.round(5), index=np.around(all_bins, 4), columns=np.around(all_bins, 4)))
-
+    print(pd.DataFrame(distance_matrix.round(4), index=np.around(all_bins, 4), columns=np.around(all_bins, 4)))
+    exit(5)
     first_signature = np.array(signature_1, dtype=np.double)
     second_signature = np.array(signature_2, dtype=np.double)
     distances = np.array(distance_matrix, dtype=np.double)
@@ -174,7 +174,7 @@ if __name__=="__main__":
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
                     plane_model = estimate_plane(_img = depth_img)
                     height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
-                    height_freqs, height_bins = np.histogram(height_profile, bins=10, density=False)
+                    height_freqs, height_bins = np.histogram(height_profile, bins=5, density=False)
                     height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
                     freqs.append(height_freqs)
                     bins.append(height_bins_centers)
@@ -200,7 +200,9 @@ if __name__=="__main__":
         fig.tight_layout()
         fig_avg.tight_layout()
         fig_emd.tight_layout()
-        fig_emd.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("emd_notNormalized.pdf" )))
+        fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("avg_std_individual_fish.pdf" )))
+        fig_avg.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("avg_std_all_fish.pdf" )))
+        fig_emd.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("emd.pdf" )))
         #plt.show()
 #https://safjan.com/metrics-to-compare-histograms/
 #https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
