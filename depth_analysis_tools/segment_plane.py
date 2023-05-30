@@ -120,12 +120,12 @@ def process_img(_depth_map, _dist_thres):
     labels = cluster_points(pcd_non_plane)
 
     # Convert clusters to mask
-    mask = clusters2mask(pcd_non_plane, labels, _num_clusters=6)
+    mask = clusters2mask(pcd_non_plane, labels, _num_clusters=10)
 
     print(np.unique(mask))
 
-    # Save mask
-    cv2.imwrite("mask.png", mask)
+    # # Save mask
+    # cv2.imwrite("mask.png", mask)
 
     # Save debug image
     #rgb_img = cv2.imread(_depth_path.replace("/depth/","/rgb/"))

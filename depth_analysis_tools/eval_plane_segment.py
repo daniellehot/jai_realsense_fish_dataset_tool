@@ -56,7 +56,6 @@ def load_masks_from_path(_path):
     return seg_masks
 
 def process_mask_pairs(_coco_masks, _seg_masks, _visualize=False):
-
     all_scores = []
     all_indices = []
     fn = 0
@@ -88,9 +87,7 @@ def process_mask_pairs(_coco_masks, _seg_masks, _visualize=False):
         plt.show()
     return fn, all_scores, avg_dice
 
-if __name__ == "__main__":
-    dist_thres = 0.020
-
+def eval_all_presets(_dist_thres):
     all_fns = {}
     all_dice_scores = {}
     for idx, path in enumerate(ANNOTATIONS): #[ANNOTATIONS[0]]):
@@ -114,7 +111,7 @@ if __name__ == "__main__":
             seg_path = glob_path.replace("*.png",img_name)
             #print(seg_path)
             #seg_masks = load_masks_from_path(seg_path)
-            test = process_img_from_path(seg_path, _dist_thres=dist_thres)
+            test = process_img_from_path(seg_path, _dist_thres=_dist_thres)
             seg_masks = img2masks(test)
 
             # Compare masks
@@ -126,7 +123,7 @@ if __name__ == "__main__":
 
             all_fns[path].append(fn)
             all_dice_scores[path]+= dice_scores
-            break
+            #break
 
         print("---------------")
         print(path)
@@ -154,4 +151,60 @@ if __name__ == "__main__":
     plt.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
     plt.minorticks_on()
     plt.title("False Negatives (lower is better)")
-    plt.savefig("eval-plane-seg_{0}.png".format(dist_thres), dpi=300)
+    plt.savefig("eval-plane-seg_{0}.png".format(_dist_thres), dpi=300)
+    return dice_avgs, fns, labels
+
+
+if __name__ == "__main__":
+    dist_thresholds = [0.005, 0.0075, 0.010, 0.0125, 0.015, 0.020, 0.025]
+
+
+    varying_thresholds = {}
+    for d in dist_thresholds:
+        varying_thresholds[d] = eval_all_presets(d)
+
+    fig = plt.figure(figsize=(16.0,12.0))
+    fig, ax = plt.subplots(2)
+
+    indices = np.arange(len(dist_thresholds))
+    width = 0.2
+    width_bla = [-width, 0, width, 2*width]
+
+    presets = [CONDITIONS_DICT[p] for p in ANNOTATIONS]
+    for k,p in enumerate(presets):
+        preset_dists = []
+        preset_dice_avgs = []
+        preset_fns = []
+        for d in varying_thresholds.keys():
+            dice_avgs, fns, labels = varying_thresholds[d]
+            idx = labels.index(p)
+            preset_dists.append(str(d))
+            preset_dice_avgs.append(dice_avgs[idx])
+            preset_fns.append(fns[idx])
+
+        print(preset_dists)
+        print(preset_dice_avgs)
+        print(preset_fns)
+
+        ax[0].set_ylim(0.0, 1.0)
+        ax[0].bar(indices+width_bla[k], preset_dice_avgs, label=p, width=width)
+        ax[0].set_title("DICE score (higher is better)")
+        ax[0].set_xticks(indices+width)
+        ax[0].set_xticklabels(preset_dists)
+        ax[0].set_xlabel("distance threshold (RANSAC)")
+        ax[0].legend(presets, loc='center left', bbox_to_anchor=(1.0, 0.5))
+        #ax[0].grid(b=True, which='major', color='k', linestyle='-')
+        #ax[0].grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+        #ax[0].minorticks_on()
+
+        ax[1].bar(indices+width_bla[k], preset_fns, label=p, width=width)
+        ax[1].set_xticks(indices+width)
+        ax[1].set_xticklabels(preset_dists)
+        ax[1].legend(presets, loc='center left', bbox_to_anchor=(1.0, 0.5))
+        ax[1].set_xlabel("distance threshold (RANSAC)")
+        #ax[1].grid(b=True, which='major', color='k', linestyle='-')
+        #ax[1].grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+        #ax[1].minorticks_on()
+        ax[1].set_title("False Negatives (lower is better)")
+    fig.tight_layout()
+    fig.savefig("eval-plane-seg_all.png", dpi=300)
