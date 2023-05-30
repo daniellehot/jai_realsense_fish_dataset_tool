@@ -41,13 +41,13 @@ def depthmap2pointcloud(depth_map, apply_roi=True):
 
     return pcd
 
-def remove_plane(_pcd):
+def remove_plane(_pcd, _dist_thres=0.015):
     # Downsample pointcloud
     downpcd = _pcd.voxel_down_sample(voxel_size=0.0025)
 
 
     # Fit plane
-    plane_model, inliers = downpcd.segment_plane(distance_threshold=0.015,
+    plane_model, inliers = downpcd.segment_plane(distance_threshold=_dist_thres,
                                                  ransac_n=10,
                                                  num_iterations=1000)
     [a, b, c, d] = plane_model
@@ -109,12 +109,12 @@ def clusters2mask(_pcd, _labels, _num_clusters=-1):
     return mask
 
 
-def process_img(_depth_map):
+def process_img(_depth_map, _dist_thres):
     # Convert to pointcloud
     pcd = depthmap2pointcloud(_depth_map)
 
     # Remove plane
-    pcd_non_plane = remove_plane(pcd)
+    pcd_non_plane = remove_plane(pcd, _dist_thres)
 
     # Try to cluster the non-plane points
     labels = cluster_points(pcd_non_plane)
@@ -128,17 +128,17 @@ def process_img(_depth_map):
     cv2.imwrite("mask.png", mask)
 
     # Save debug image
-    rgb_img = cv2.imread(_depth_path.replace("/depth/","/rgb/"))
-    plt.imshow(rgb_img)
-    plt.imshow(mask, alpha=0.3, cmap='gist_ncar')
-    plt.savefig("mask-overlaid.png")
+    #rgb_img = cv2.imread(_depth_path.replace("/depth/","/rgb/"))
+    #plt.imshow(rgb_img)
+    #plt.imshow(mask, alpha=0.3, cmap='gist_ncar')
+    #plt.savefig("mask-overlaid.png")
     return mask
 
-def process_img_from_path(_depth_path)
+def process_img_from_path(_depth_path, _dist_thres):
     # Load depth map
     depth_map = o3d.io.read_image(_depth_path)
 
-    return process_img(depth_map)
+    return process_img(depth_map, _dist_thres)
 
 if __name__ == "__main__":
     test_path = "../../data_depth_analysis/data/rs/depth/00002.png"

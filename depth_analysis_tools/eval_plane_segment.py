@@ -4,16 +4,20 @@ from  pycocotools.coco import COCO
 import matplotlib.pyplot as plt
 import cv2
 
+from segment_plane import process_img_from_path
+
+glob_path = "../../data_depth_analysis/data/rs/depth/*.png"
+
 ANNOTATIONS = ["annotations/img2-11.json",
                "annotations/img12-21.json",
                "annotations/img22-31.json",
                "annotations/img32-41.json"
                ]
 
-CONDITIONS_DICT = {"annotations/img2-11.json" : "default_no_background",
-               "annotations/img12-21.json" : "default_background",
-               "annotations/img22-31.json" : "high_acc_background",
-               "annotations/img32-41.json" : "high_acc_no_background"
+CONDITIONS_DICT = {"annotations/img2-11.json" : "def_no_bg",
+               "annotations/img12-21.json" : "def_bg",
+               "annotations/img22-31.json" : "acc_bg",
+               "annotations/img32-41.json" : "acc_no_bg"
                }
 
 FISH = ["54haddock",
@@ -41,7 +45,9 @@ def img2masks(_img):
     for v in vals:
         curr_mask = np.zeros_like(_img).astype(np.float32)
         curr_mask[_img == v] = 1.0
-        masks.append(curr_mask[:,:,0])
+        if(len(curr_mask.shape) == 3):
+            curr_mask = curr_mask[:,:,0]
+        masks.append(curr_mask)
     return masks
 
 def load_masks_from_path(_path):
@@ -55,7 +61,7 @@ def process_mask_pairs(_coco_masks, _seg_masks, _visualize=False):
     all_indices = []
     fn = 0
     for i1,m1 in enumerate(_coco_masks): # loop through annotations
-        highest_score = -1
+        highest_score = 0
         highest_index = -1
         for i2,m2 in enumerate(_seg_masks): # loop through masks from segmentation
             dice_score = calc_dice_score(m1, m2)
@@ -67,9 +73,9 @@ def process_mask_pairs(_coco_masks, _seg_masks, _visualize=False):
         # Check for false negatives / missing masks
         if(highest_score == 0.0 or highest_index in all_indices):
             fn += 1
-        else: # Update list of scores
-            all_scores.append(highest_score)
-            all_indices.append(highest_index)
+        # Update list of scores
+        all_scores.append(highest_score)
+        all_indices.append(highest_index)
     avg_dice = np.mean(all_scores)
 
     if(_visualize):
@@ -83,6 +89,7 @@ def process_mask_pairs(_coco_masks, _seg_masks, _visualize=False):
     return fn, all_scores, avg_dice
 
 if __name__ == "__main__":
+    dist_thres = 0.020
 
     all_fns = {}
     all_dice_scores = {}
@@ -104,9 +111,11 @@ if __name__ == "__main__":
             coco_masks = [coco.annToMask(ann) for ann in coco_anns]
 
             # Extract masks from segmented image
-            # UPDATE!!!
-            seg_path = "mask0.png" #"../../data_depth_analysis/data/rs/depth/00032.png"
-            seg_masks = load_masks_from_path(seg_path)
+            seg_path = glob_path.replace("*.png",img_name)
+            #print(seg_path)
+            #seg_masks = load_masks_from_path(seg_path)
+            test = process_img_from_path(seg_path, _dist_thres=dist_thres)
+            seg_masks = img2masks(test)
 
             # Compare masks
             fn, dice_scores, avg_dice = process_mask_pairs(coco_masks, seg_masks) #, _visualize=True)
@@ -117,6 +126,7 @@ if __name__ == "__main__":
 
             all_fns[path].append(fn)
             all_dice_scores[path]+= dice_scores
+            break
 
         print("---------------")
         print(path)
@@ -127,12 +137,21 @@ if __name__ == "__main__":
     # Create nice plots...
     dice_avgs = [np.mean(np.array(all_dice_scores[path], dtype=np.float32).flatten()) for path in ANNOTATIONS]
     fns = [np.sum(np.array(all_fns[path]).flatten()) for path in ANNOTATIONS]
+    labels = [CONDITIONS_DICT[p] for p in ANNOTATIONS]
 
-    fig = plt.figure()
+
+    fig = plt.figure(figsize=(16.0,12.0))
     plt.subplot(2,1,1)
-    plt.bar(ANNOTATIONS, dice_avgs)
+    plt.ylim(0.0, 1.0)
+    plt.bar(labels, dice_avgs)
     plt.title("DICE score (higher is better)")
+    plt.grid(b=True, which='major', color='k', linestyle='-')
+    plt.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+    plt.minorticks_on()
     plt.subplot(2,1,2)
-    plt.bar(ANNOTATIONS, fns)
+    plt.bar(labels, fns)
+    plt.grid(b=True, which='major', color='k', linestyle='-')
+    plt.grid(b=True, which='minor', color='r', linestyle='-', alpha=0.2)
+    plt.minorticks_on()
     plt.title("False Negatives (lower is better)")
-    plt.show()
+    plt.savefig("eval-plane-seg_{0}.png".format(dist_thres), dpi=300)
