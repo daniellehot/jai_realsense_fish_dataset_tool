@@ -53,20 +53,20 @@ def calculate_emd(signature_1, signature_2, distance_matrix):
     return emd, flow
 
 data1 = [10, 20, 30]
-data1_freq, data1_bins = np.histogram(data1, bins=3, density=False)
+data1_freq, data1_bins = np.histogram(data1, bins=3, density=True)
 data1_bins = 0.5 * (data1_bins[1:] + data1_bins[:-1])
 
-data2 = [10, 11, 20, 21, 30]
+data2 = [10, 10, 20, 20, 30]
 #data2 = [100, 200, 300]
 print(data2)
 #data2 = [5, 11, 14, 21, 38]
-data2_freq, data2_bins = np.histogram(data2, bins=3, density=False)
+data2_freq, data2_bins = np.histogram(data2, bins=3, density=True)
 data2_bins = 0.5 * (data2_bins[1:] + data2_bins[:-1])
 
 #positions, sig1, sig2 = generate_ordered_signatures(data1_freq, data1_bins, data2_freq, data2_bins, normalize=True)
 
 
-positions, sig1, sig2 = generate_signatures(data1_freq, data1_bins, data2_freq, data2_bins, normalize=True)
+positions, sig1, sig2 = generate_signatures(data1_freq, data1_bins, data2_freq, data2_bins, normalize=False)
 for position, freq in zip(positions, sig1):
     print("SIG1 Position:", np.around(position, 2), "Mass:", np.around(freq, 2))
 print("===========")

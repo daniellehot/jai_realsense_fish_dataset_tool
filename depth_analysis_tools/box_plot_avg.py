@@ -57,7 +57,8 @@ def estimate_plane(_img):
     _img[_img > max_depth] = max_depth
     o3_depth_image = o3d.geometry.Image(_img)
     pcd = o3d.geometry.PointCloud.create_from_depth_image(o3_depth_image, RS_INTRINSICS)
-    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+    #plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
+    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
     #[a, b, c, d] = plane_model
     #print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
     """
@@ -133,21 +134,21 @@ def calculate_emd(freq1, bins1, freq2, bins2, normalize):
 
 if __name__=="__main__":
         VOXEL_SIZE = 0.0025
+        #VOXEL_SIZE = 0.1
         OUTPUT_FOLDER = "height_analysis"
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
 
-        fig, ax = plt.subplots(4)
-        fig_avg, ax_avg = plt.subplots()
-        fig_emd, ax_emd = plt.subplots(4)
+        #fig, ax = plt.subplots(4)
+        #fig_avg, ax_avg = plt.subplots()
+        #fig_emd, ax_emd = plt.subplots(4)
+        box_plot_data = []
+        fig, (ax_box, ax_scatter) = plt.subplots(1, 2)
 
         for idx, path in enumerate(ANNOTATIONS):
-            emd_means, emd_stds = [], []
-            
-            for fish in FISH:
-                #fig_fish_combined, ax_fish_combined = plt.subplots()
-                #fig_fish, ax_fish = plt.subplots(2,5)
-                
+            #cat_emd_values = []    
+            emd_values = []
+            for fish in FISH:    
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
                 query_cat_id = coco.getCatIds(fish)
@@ -173,38 +174,29 @@ if __name__=="__main__":
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
                     plane_model = estimate_plane(_img = depth_img)
                     height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
-                    height_freqs, height_bins = np.histogram(height_profile, bins=20, density=False)
+                    height_freqs, height_bins = np.histogram(height_profile, bins=50, density=False)
                     height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
                     freqs.append(height_freqs)
                     bins.append(height_bins_centers)
                 
-                emd_values = []
+                #emd_values = []
                 for i in range(len(freqs)):
-                    for j in range(len(freqs)):
+                    for j in range(i, len(freqs)):
                         if i != j:
-                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = False))
+                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = True))
+                #cat_emd_values += emd_values
 
-                emd_means.append(np.mean(emd_values))
-                emd_stds.append(np.std(emd_values))
-                            
-                ax_emd[idx].scatter([fish]*len(emd_values), emd_values, color = PLOT_COLORS[FISH.index(fish)])
-                ax_emd[idx].set_title(CONDITIONS_DICT[path])
+            box_plot_data.append(emd_values)
+            ax_scatter.scatter([CONDITIONS_DICT[path]]*len(emd_values), emd_values)
+            
+        ax_box.boxplot(box_plot_data)
+        ax_box.set_xticks([1, 2, 3, 4], list(CONDITIONS_DICT.values()))
+        ax_box.tick_params(axis="x", labelsize = 3, labelrotation = 30)
+        ax_scatter.tick_params(axis="x", labelsize = 3, labelrotation = 30)
+        fig.suptitle("avg")
+        fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("avg_box_scatter.pdf" )))
 
-            plot_colors = PLOT_COLORS[:len(emd_means)]
-            ax[idx].errorbar(FISH, emd_means, emd_stds, fmt='o', ecolor = plot_colors)
-            ax[idx].set_title(CONDITIONS_DICT[path])
-
-            ax_avg.errorbar(CONDITIONS_DICT[path], np.mean(emd_means), np.mean(emd_stds), fmt='o', ecolor = PLOT_COLORS[idx])
-            #ax_avg.set_x
-
-        fig.tight_layout()
-        fig_avg.tight_layout()
-        fig_emd.tight_layout()
-        fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("avg_std_individual_fish.pdf" )))
-        fig_avg.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("avg_std_all_fish.pdf" )))
-        fig_emd.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("emd.pdf" )))
-        #plt.show()
-#https://safjan.com/metrics-to-compare-histograms/
+        #https://safjan.com/metrics-to-compare-histograms/
 #https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
 #https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use
 #https://stats.stackexchange.com/questions/157468/how-to-determine-similarity-between-histograms-which-metric-to-use
