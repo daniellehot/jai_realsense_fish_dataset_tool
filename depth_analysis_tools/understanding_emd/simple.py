@@ -1,5 +1,5 @@
 import numpy as np
-from pyemd import emd_with_flow
+from pyemd import emd_with_flow, emd_samples
 import pandas as pd
 
 def generate_signatures(freq1, bins1, freq2, bins2, normalize):
@@ -10,6 +10,30 @@ def generate_signatures(freq1, bins1, freq2, bins2, normalize):
     all_bins = list(np.concatenate((bins1, bins2)))
     distribution1_sig = np.concatenate((freq1, np.zeros(len(bins2))))
     distribution2_sig = np.concatenate((np.zeros(len(bins1)), freq2))
+
+    return all_bins, distribution1_sig, distribution2_sig
+
+def generate_ordered_signatures(freq1, bins1, freq2, bins2, normalize):
+    if normalize:
+        freq1 = freq1/sum(freq1)*100
+        freq2 = freq2/sum(freq2)*100
+    hist1_dict = dict(zip(bins1, freq1))
+    hist2_dict = dict(zip(bins2, freq2))
+    #all_freq = list(np.concatenate((freq1, freq2)))
+    all_bins = list(np.concatenate((bins1, bins2)))
+    all_bins.sort()
+    print(all_bins)
+    
+    distribution1_sig = []
+    distribution2_sig = []
+    for bin in all_bins:
+        distribution1_sig.append(hist1_dict.get(bin, 0))
+        distribution2_sig.append(hist2_dict.get(bin, 0))
+    print(distribution1_sig)
+    print(distribution2_sig)
+
+    #distribution1_sig = np.concatenate((freq1, np.zeros(len(bins2))))
+    #distribution2_sig = np.concatenate((np.zeros(len(bins1)), freq2))
 
     return all_bins, distribution1_sig, distribution2_sig
 
@@ -29,28 +53,36 @@ def calculate_emd(signature_1, signature_2, distance_matrix):
     return emd, flow
 
 data1 = [10, 20, 30]
-data1_freq, data1_bins = np.histogram(data1, bins=5, density=False)
+data1_freq, data1_bins = np.histogram(data1, bins=3, density=False)
 data1_bins = 0.5 * (data1_bins[1:] + data1_bins[:-1])
 
-data2 = [1, 11, 9]
-data2_freq, data2_bins = np.histogram(data2, bins=5, density=False)
+data2 = [10, 11, 20, 21, 30]
+#data2 = [100, 200, 300]
+print(data2)
+#data2 = [5, 11, 14, 21, 38]
+data2_freq, data2_bins = np.histogram(data2, bins=3, density=False)
 data2_bins = 0.5 * (data2_bins[1:] + data2_bins[:-1])
+
+#positions, sig1, sig2 = generate_ordered_signatures(data1_freq, data1_bins, data2_freq, data2_bins, normalize=True)
+
 
 positions, sig1, sig2 = generate_signatures(data1_freq, data1_bins, data2_freq, data2_bins, normalize=True)
 for position, freq in zip(positions, sig1):
-    print("Position:", position, "Mass:", freq)
-print("========0000")
+    print("SIG1 Position:", np.around(position, 2), "Mass:", np.around(freq, 2))
+print("===========")
 for position, freq in zip(positions, sig2):
-    print("Position:", position, "Mass:", freq)
+    print("SIG2 Position:", np.around(position, 2), "Mass:", np.around(freq, 2))
 
 dist = compute_dist_matrix(positions)
-print(pd.DataFrame(dist.round(1), index=positions, columns=positions))
+print("Distance matrix")
+print(pd.DataFrame(dist.round(1), index=np.around(positions, 1), columns=np.around(positions, 1)))
+print("===========")
 
 emd, flow = calculate_emd(sig1, sig2, dist)
 print("EMD: {0:.2f}".format(emd))
-print("Flow:\n", pd.DataFrame(flow, index=positions, columns=positions))
+print("Flow:\n", pd.DataFrame(flow.round(2), index=positions, columns=positions))
 
 
-emd, flow = calculate_emd(sig2, sig1, dist)
-print("EMD: {0:.2f}".format(emd))
-print("Flow:\n", pd.DataFrame(flow, index=positions, columns=positions))
+#emd, flow = calculate_emd(sig2, sig1, dist)
+#print("EMD: {0:.2f}".format(emd))
+#print("Flow:\n", pd.DataFrame(flow, index=positions, columns=positions))
