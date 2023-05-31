@@ -144,6 +144,13 @@ def calculate_emd(freq1, bins1, freq2, bins2, normalize):
     emd_value = emd(first_signature, second_signature, distances)
     return emd_value
 
+class EMDData():
+    def _init_(self, emd_value, freq1, bins1, freq2, bins2, fish, preset):
+        self.emd_value = emd_value
+        self.freq1, self.freq2 = freq1, freq2
+        self.bins1, self.bins2 = bins1, bins2
+        self.fish, self.preset = fish, preset
+
 
 if __name__=="__main__":
         #calculate_distances(_plane = [2, -2, 5, 8], _fish = np.array([[4, -4, 3], [4, 4, 3]])) 
