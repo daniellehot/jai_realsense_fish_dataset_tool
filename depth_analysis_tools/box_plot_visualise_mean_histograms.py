@@ -65,7 +65,7 @@ def estimate_plane(_img):
     o3_depth_image = o3d.geometry.Image(_img)
     pcd = o3d.geometry.PointCloud.create_from_depth_image(o3_depth_image, RS_INTRINSICS)
     #plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
-    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
+    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
     #[a, b, c, d] = plane_model
     #print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
     """
@@ -150,7 +150,7 @@ if __name__=="__main__":
         #exit(5)
 
         VOXEL_SIZE = 0.0025
-        #VOXEL_SIZE = 0.1
+        VOXEL_SIZE = 0.1
         OUTPUT_FOLDER = "height_analysis"
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
@@ -164,8 +164,11 @@ if __name__=="__main__":
         for idx, path in enumerate(ANNOTATIONS):
             #cat_emd_values = []    
             emd_values = []
-            emd_labels = []
-            emd_colors = []
+            emd_pairs = []
+            emd_freqs = []
+            emd_bins = []
+            emd_height_data = []
+            
             for fish in FISH:    
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
@@ -197,13 +200,48 @@ if __name__=="__main__":
                     height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
                     freqs.append(height_freqs)
                     bins.append(height_bins_centers)
+                    # Save to later plot histograms
+                    emd_freqs.append(height_freqs)
+                    emd_bins.append(height_bins)
+                    emd_height_data.append(height_profile)
                 
+
                 for i in range(len(freqs)):
                     for j in range(i, len(freqs)):
                         if i != j:
                             emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = True))
-                            emd_labels.append(fish)
-                            emd_colors.append(FISH_COLOR_DICT[fish])
+                            emd_pairs.append((i, j))
+            
+            fig, (ax_median, ax_max) = plt.subplots(2)
+
+            median_emd = np.median(emd_values)
+            median_idx = emd_values.index(median_emd)
+            querry_i = emd_pairs[median_idx][0] 
+            querry_j = emd_pairs[median_idx][1]
+            #ax_median.bar(emd_bins[querry_i], freqs[querry_i]/sum(freqs[querry_i]), align="center", alpha=0.5, width=np.abs(bins[querry_i][1] - bins[querry_i][0]))
+            #ax_median.bar(emd_bins[querry_j], freqs[querry_j]/sum(freqs[querry_j]), align="center", alpha=0.5, width=np.abs(bins[querry_j][1] - bins[querry_j][0]))
+            ax_median.set_title("emd=" + str(np.around(median_emd, 4)))
+            ax_median.stairs(emd_freqs[querry_i]/sum(emd_freqs[querry_i]), emd_bins[querry_i], fill=True, alpha=0.5)
+            ax_median.stairs(emd_freqs[querry_j]/sum(emd_freqs[querry_j]), emd_bins[querry_j], fill=True, alpha=0.5)
+
+            max_emd = max(emd_values)
+            max_idx = emd_values.index(max_emd)
+            querry_i = emd_pairs[max_idx][0]
+            querry_j = emd_pairs[max_idx][1]
+            #ax_max.bar(emd_bins[querry_i], freqs[querry_i]/sum(freqs[querry_i]), align="center", alpha=0.5, width=np.abs(bins[querry_i][1] - bins[querry_i][0]))
+            #ax_max.bar(emd_bins[querry_j], freqs[querry_j]/sum(freqs[querry_j]), align="center", alpha=0.5, width=np.abs(bins[querry_j][1] - bins[querry_j][0]))
+            ax_max.set_title("emd=" + str(np.around(max_emd, 4)))
+            ax_max.stairs(emd_freqs[querry_i]/sum(emd_freqs[querry_i]), emd_bins[querry_i], fill=True, alpha=0.5)
+            ax_max.stairs(emd_freqs[querry_j]/sum(emd_freqs[querry_j]), emd_bins[querry_j], fill=True, alpha=0.5)
+
+            fig.supylabel(CONDITIONS_DICT[path])
+            fig.tight_layout()
+            fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join(CONDITIONS_DICT[path])))
+
+
+            
+
+        """
 
             ax_scatter.scatter([CONDITIONS_DICT[path]]*len(emd_values), emd_values, alpha = 0.25, c=emd_colors)
             box_plot_data.append(emd_values)
@@ -218,6 +256,7 @@ if __name__=="__main__":
 
         fig.tight_layout()
         fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("box_scatter_all_fish.pdf" )))
+        """
 
         #https://safjan.com/metrics-to-compare-histograms/
 #https://theailearner.com/2019/08/13/earth-movers-distance-emd/ 
