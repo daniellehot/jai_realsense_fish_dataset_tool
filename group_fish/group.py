@@ -2,21 +2,22 @@ import random as rnd
 import matplotlib.pyplot as plt
 import numpy as np
 from collections import Counter
+import os
 
 FISH_CATALOG = {
-    "cod": 110,
-    "haddock": 100,
-    "hake": 55,
-    "saithe": 14,
-    "whiting": 120,
-    "horse mack": 50
+    "cod": 102,
+    "haddock": 119,
+    "hake": 52,
+    "other": 29,
+    "whiting": 103,
+    "horse mack": 58
 }
 
 COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'yellow', 'cyan', 'silver']
 BAR_COLORS = COLORS[:len(list(FISH_CATALOG.keys()))]
 
-GROUP_MIN = 15
-GROUP_MAX = 20
+GROUP_MIN = 16
+GROUP_MAX = 22
 
 class GroupGenerator():
     def __init__(self):
@@ -108,10 +109,21 @@ class GroupGenerator():
                 all_fish.append(species)
         rnd.shuffle(all_fish)
         return all_fish
+    
+    def get_number_of_fish(self):
+        if len(self.groups) == 0:
+            return rnd.randint(GROUP_MIN, GROUP_MAX)
+        else:
+            current_avg = len(self.used_fish)/len(self.groups)
+            if current_avg < 18.52
+
+            
+
+        return number_of_fish
 
     def get_group(self):
         group = []
-        number_of_fish = rnd.randint(GROUP_MIN, GROUP_MAX)
+        number_of_fish = self.get_number_of_fish()
         
         if number_of_fish > len(self.available_fish):
             number_of_fish = len(self.available_fish)
@@ -129,6 +141,28 @@ class GroupGenerator():
                 self.used_fish.append(rnd_fish)
             self.groups.append(group)
 
+    def write_groups(self):
+        filename = "groups.txt"
+        if os.path.exists(filename):
+            os.remove(filename)
+            
+        for idx, group in enumerate(self.groups):
+            group.sort()
+            counter = Counter(group)
+            string_to_write = 'Group No. {} Number of fish {}'.format(idx + 1, len(group))  
+            for fish in FISH_CATALOG.keys():
+                fish_count = ' {} {}'.format(fish, counter[fish])
+                string_to_write += fish_count
+            string_to_write += "\n"
+            
+            with open(filename, "a") as f:
+                f.write(string_to_write)
+            
+
+            
+        
+
+
 
 if __name__=="__main__":
     generator = GroupGenerator()
@@ -141,7 +175,10 @@ if __name__=="__main__":
         group.sort()
         print("Group No.", generator.groups.index(group), "Number of fish", len(group), group)
     print("===========================")
-    
+
+    generator.write_groups()
+    exit(5)
+
     #generator.draw_group_distribution(generator.groups[2])
     generator.draw_group_distributions()
 

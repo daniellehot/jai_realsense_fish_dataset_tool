@@ -65,7 +65,7 @@ def estimate_plane(_img):
     o3_depth_image = o3d.geometry.Image(_img)
     pcd = o3d.geometry.PointCloud.create_from_depth_image(o3_depth_image, RS_INTRINSICS)
     #plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
-    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=3, num_iterations=1000)
+    plane_model, inliers = pcd.segment_plane(distance_threshold=0.01, ransac_n=10, num_iterations=1000)
     #[a, b, c, d] = plane_model
     #print(f"Plane equation: {a:.2f}x + {b:.2f}y + {c:.2f}z + {d:.2f} = 0")
     """
@@ -100,10 +100,7 @@ def calculate_distances(_plane, _fish):
     return distances
 
 
-def generate_signatures(freq1, bins1, freq2, bins2, normalize):
-    if normalize:
-        freq1 = freq1/sum(freq1) * 100
-        freq2 = freq2/sum(freq2) * 100
+def generate_signatures(freq1, bins1, freq2, bins2):
     all_bins = list(np.concatenate((bins1, bins2)))
     distribution1_sig = np.concatenate((freq1, np.zeros(len(bins2))))
     distribution2_sig = np.concatenate((np.zeros(len(bins1)), freq2))
@@ -128,28 +125,70 @@ def compute_dist_matrix(positions):
 
 
 def calculate_emd(freq1, bins1, freq2, bins2, normalize):
-    all_bins, signature_1, signature_2 = generate_signatures(freq1, bins1, freq2, bins2, normalize)
 
+    # Calculate bin centers
+    bins1 = 0.5 * (bins1[1:] + bins1[:-1])
+    bins2 = 0.5 * (bins2[1:] + bins2[:-1])
+    # Normalize data if true
+    if normalize:
+        freq1 = freq1/sum(freq1) * 100
+        freq2 = freq2/sum(freq2) * 100
+
+    # Generate signatures
+    all_bins, signature_1, signature_2 = generate_signatures(freq1, bins1, freq2, bins2)
+    
+    # Compute distance matrix for all bins
     distance_matrix = compute_dist_matrix(all_bins)
     #print(pd.DataFrame(distance_matrix.round(4), index=np.around(all_bins, 4), columns=np.around(all_bins, 4)))
+    
+    # Cast all data to double (required by pyemd)
     first_signature = np.array(signature_1, dtype=np.double)
     second_signature = np.array(signature_2, dtype=np.double)
     distances = np.array(distance_matrix, dtype=np.double)
-    #emd_value, flow = emd_with_flow(first_signature, second_signature, distances)
-    #flow = np.array(flow)
+    
+    # Sanity check before emd computation
     if len(first_signature) != len(second_signature):
         print("Signature lengths dont match")
         exit(5)
         
     emd_value = emd(first_signature, second_signature, distances)
+    #emd_value, flow = emd_with_flow(first_signature, second_signature, distances)
+    #flow = np.array(flow)
     return emd_value
 
+
 class EMDData():
-    def _init_(self, emd_value, freq1, bins1, freq2, bins2, fish, preset):
+    def __init__(self, emd_value, freq1, bins1, image1, freq2, bins2, image2, fish, preset):
         self.emd_value = emd_value
         self.freq1, self.freq2 = freq1, freq2
         self.bins1, self.bins2 = bins1, bins2
+        self.img1, self.img2 = image1, image2
         self.fish, self.preset = fish, preset
+
+
+def compute_average_plane(imgs):
+    plane_models = []
+    for img in imgs:
+        depth_img = cv2.imread( os.path.join("depth_analysis_data/data/rs/depth", img["file_name"]), cv2.IMREAD_UNCHANGED)
+        for i in range(3):
+            print("Img {} Iteration {} ".format(img["file_name"], i))
+            plane_models.append(estimate_plane(depth_img))
+                
+    plane_models = np.asarray(plane_models)
+    # Remember to normalize
+    avg_plane_model = np.mean(plane_models, axis=0)
+    
+    return avg_plane_model
+
+def compute_angles_between_planes(plane_models):
+
+    for i in range(plane_models.shape[0]):
+        plane1 = plane_models[i, :3]
+        for j in range(i, plane_models.shape[0]):
+            plane2 = plane_models[j, :3]
+            if i != j:
+                angle_betweeen_planes = np.arccos(np.abs(plane1.dot(plane2)))
+
 
 
 if __name__=="__main__":
@@ -157,34 +196,34 @@ if __name__=="__main__":
         #exit(5)
 
         VOXEL_SIZE = 0.0025
-        VOXEL_SIZE = 0.1
+        #VOXEL_SIZE = 0.1
         OUTPUT_FOLDER = "height_analysis"
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
 
-        #fig, ax = plt.subplots(4)
-        #fig_avg, ax_avg = plt.subplots()
-        #fig_emd, ax_emd = plt.subplots(4)
-        
+
+        fig_all, (ax_box, ax_scatter) = plt.subplots(1, 2)
+        ax_scatter.tick_params(axis="x", labelsize = 3, labelrotation = 30)
+
         box_plot_data = []
-        fig, (ax_box, ax_scatter) = plt.subplots(1, 2)
-        for idx, path in enumerate(ANNOTATIONS):
-            #cat_emd_values = []    
+        for idx, path in enumerate(ANNOTATIONS):    
             emd_values = []
-            emd_pairs = []
-            emd_freqs = []
-            emd_bins = []
-            emd_height_data = []
-            
+            emd_data = []
+            emd_colors = []
+            bins_to_use = np.arange(0, 0.06+0.0025, 0.0025)
+
             for fish in FISH:    
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
                 coco = COCO(path)
                 query_cat_id = coco.getCatIds(fish)
                 query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
                 query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_cat_id) )
+                compute_average_plane(query_imgs)    
+                exit(5)
                 
-                freqs, bins = [], []
-                for i in range(len(query_imgs)):
+                freqs, bins, images = [], [], []
+                for i in range(len(query_imgs)):        
+        
                     # Sanity check for the annotation-image pair
                     if query_anns[i]["image_id"] != query_imgs[i]["id"]:
                         print("============")
@@ -193,57 +232,137 @@ if __name__=="__main__":
                         print("============")
                         exit(5)
                     
+                    # Get mask
                     mask = coco.annToMask(query_anns[i])
+                    
+                    # Construct masked rgb image
+                    rgb_mask = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
+                    rgb_mask[:,:,0] = rgb_mask[:,:, 0]*255 
+                    rgb_image = cv2.imread( os.path.join("depth_analysis_data/data/rs/rgb", query_imgs[i]["file_name"]))
+                    cv2.addWeighted(rgb_image, 0.65, rgb_mask, 0.35, 0, rgb_image)
+                    
+                    # Construct masked depth image
                     depth_img = cv2.imread(
                         os.path.join("depth_analysis_data/data/rs/depth", query_imgs[i]["file_name"]),
                         cv2.IMREAD_UNCHANGED
                         )
                     fish_pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
+                    
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
                     plane_model = estimate_plane(_img = depth_img)
                     height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
-                    
-                    height_freqs, height_bins = np.histogram(height_profile, bins=50, density=False)
-                    height_bins_centers = 0.5 * (height_bins[1:] + height_bins[:-1])
+                    height_freqs, height_bins = np.histogram(height_profile, bins=bins_to_use, density=False)
+
                     freqs.append(height_freqs)
-                    bins.append(height_bins_centers)
-                    # Save to later plot histograms
-                    emd_freqs.append(height_freqs)
-                    emd_bins.append(height_bins)
-                    emd_height_data.append(height_profile)
-                
+                    bins.append(height_bins)
+                    images.append(rgb_image)
 
                 for i in range(len(freqs)):
                     for j in range(i, len(freqs)):
                         if i != j:
-                            emd_values.append(calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = True))
-                            emd_pairs.append((i, j))
+                            emd_value = calculate_emd(freqs[i], bins[i], freqs[j], bins[j], normalize = True)
+                            emd_values.append(emd_value)
+                            emd_colors.append(FISH_COLOR_DICT[fish])
+                                                    #(self, emd_value, freq1, bins1, freq2, bins2, fish, preset):
+                            emd_data.append(EMDData(emd_value, freqs[i], bins[i], images[i], freqs[j], bins[j], images[j], fish, CONDITIONS_DICT[path]))
             
-            fig, (ax_median, ax_max) = plt.subplots(2)
+            # Build scatter plot for the preset
+            ax_scatter.scatter([CONDITIONS_DICT[path]]*len(emd_values), emd_values, alpha = 0.25, c=emd_colors)
+            # Preserve data for the box plot later
+            box_plot_data.append(emd_values)
 
-            median_emd = np.median(emd_values)
-            median_idx = emd_values.index(median_emd)
-            querry_i = emd_pairs[median_idx][0] 
-            querry_j = emd_pairs[median_idx][1]
-            #ax_median.bar(emd_bins[querry_i], freqs[querry_i]/sum(freqs[querry_i]), align="center", alpha=0.5, width=np.abs(bins[querry_i][1] - bins[querry_i][0]))
-            #ax_median.bar(emd_bins[querry_j], freqs[querry_j]/sum(freqs[querry_j]), align="center", alpha=0.5, width=np.abs(bins[querry_j][1] - bins[querry_j][0]))
-            ax_median.set_title("emd=" + str(np.around(median_emd, 4)))
-            ax_median.stairs(emd_freqs[querry_i]/sum(emd_freqs[querry_i]), emd_bins[querry_i], fill=True, alpha=0.5)
-            ax_median.stairs(emd_freqs[querry_j]/sum(emd_freqs[querry_j]), emd_bins[querry_j], fill=True, alpha=0.5)
+            # Image figure
+            fig_img, (ax_img1, ax_img2) = plt.subplots(2)
+            ax_img1.axis('off')
+            ax_img2.axis('off')
 
-            max_emd = max(emd_values)
-            max_idx = emd_values.index(max_emd)
-            querry_i = emd_pairs[max_idx][0]
-            querry_j = emd_pairs[max_idx][1]
-            #ax_max.bar(emd_bins[querry_i], freqs[querry_i]/sum(freqs[querry_i]), align="center", alpha=0.5, width=np.abs(bins[querry_i][1] - bins[querry_i][0]))
-            #ax_max.bar(emd_bins[querry_j], freqs[querry_j]/sum(freqs[querry_j]), align="center", alpha=0.5, width=np.abs(bins[querry_j][1] - bins[querry_j][0]))
-            ax_max.set_title("emd=" + str(np.around(max_emd, 4)))
-            ax_max.stairs(emd_freqs[querry_i]/sum(emd_freqs[querry_i]), emd_bins[querry_i], fill=True, alpha=0.5)
-            ax_max.stairs(emd_freqs[querry_j]/sum(emd_freqs[querry_j]), emd_bins[querry_j], fill=True, alpha=0.5)
+            # Histogram figure
+            fig, (ax_median, ax_max, ax_min) = plt.subplots(3)
+            
+            ax_median.set_xticks(bins_to_use)
+            ax_median.tick_params(axis="x", labelsize = 3, labelrotation = 30)  
 
+            ax_max.set_xticks(bins_to_use)
+            ax_max.tick_params(axis="x", labelsize = 3, labelrotation = 30)  
+            
+            ax_min.set_xticks(bins_to_use)
+            ax_min.tick_params(axis="x", labelsize = 3, labelrotation = 30)  
+            
+            # Median emd histogram
+            query_emd = np.median(emd_values)
+            query_idx = emd_values.index(query_emd)
+            ax_median.set_title(emd_data[query_idx].fish + " emd=" + str(np.around(query_emd, 4)))
+            ax_median.stairs(emd_data[query_idx].freq1/sum(emd_data[query_idx].freq1), 
+                             emd_data[query_idx].bins1, 
+                             fill=True, 
+                             alpha=0.5)
+            
+            ax_median.stairs(emd_data[query_idx].freq2/sum(emd_data[query_idx].freq2), 
+                             emd_data[query_idx].bins2, 
+                             fill=True, 
+                             alpha=0.5)
+
+            # Max emd histogram
+            query_emd = max(emd_values)
+            query_idx = emd_values.index(query_emd)
+            ax_max.set_title(emd_data[query_idx].fish + " emd=" + str(np.around(query_emd, 4)))
+            ax_max.stairs(emd_data[query_idx].freq1/sum(emd_data[query_idx].freq1), 
+                          emd_data[query_idx].bins1, 
+                          fill=True, 
+                          alpha=0.5)
+            
+            ax_max.stairs(emd_data[query_idx].freq2/sum(emd_data[query_idx].freq2),
+                          emd_data[query_idx].bins2,
+                          fill=True,
+                          alpha=0.5)
+            
+            
+            ax_img1.imshow(emd_data[query_idx].img1, interpolation='nearest')
+            ax_img2.imshow(emd_data[query_idx].img2, interpolation='nearest')
+            fig_img.supylabel(CONDITIONS_DICT[path]+"_max")
+            fig_img.tight_layout()
+            fig_img.savefig(os.path.join(OUTPUT_FOLDER, os.path.join(CONDITIONS_DICT[path])+"_max.png"))
+
+
+            # Min emd histogram
+            query_emd = min(emd_values)
+            query_idx = emd_values.index(query_emd)
+            ax_min.set_title(emd_data[query_idx].fish + " emd=" + str(np.around(query_emd, 4)))
+            ax_min.stairs(emd_data[query_idx].freq1/sum(emd_data[query_idx].freq1), 
+                          emd_data[query_idx].bins1, 
+                          fill=True, 
+                          alpha=0.5)
+            
+            ax_min.stairs(emd_data[query_idx].freq2/sum(emd_data[query_idx].freq2),
+                          emd_data[query_idx].bins2,
+                          fill=True,
+                          alpha=0.5)
+            
+            ax_img1.imshow(emd_data[query_idx].img1, interpolation='nearest')
+            ax_img2.imshow(emd_data[query_idx].img2, interpolation='nearest')
+            fig_img.supylabel(CONDITIONS_DICT[path]+"_min")
+            fig_img.tight_layout()
+            fig_img.savefig(os.path.join(OUTPUT_FOLDER, os.path.join(CONDITIONS_DICT[path])+"_min.png"))
+
+            # Save histogram figure
             fig.supylabel(CONDITIONS_DICT[path])
             fig.tight_layout()
-            fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join(CONDITIONS_DICT[path])))
+            fig.savefig(os.path.join(OUTPUT_FOLDER, os.path.join(CONDITIONS_DICT[path])+".pdf"))
+        
+        #Build box plot
+        ax_box.boxplot(box_plot_data)
+        ax_box.set_xticks([1, 2, 3, 4], list(CONDITIONS_DICT.values()))
+        ax_box.tick_params(axis="x", labelsize = 3, labelrotation = 30)        
+        
+        
+        # Add legend to the scatter plot
+        handlelist = [ax_scatter.plot([], marker="o", ls="", color=color)[0] for color in list(FISH_COLOR_DICT.values())]
+        ax_scatter.legend(handlelist,list(FISH_COLOR_DICT.keys()), bbox_to_anchor=(1.1, 1), fontsize =5)
+        
+        # Save box and scatter plot figure
+        fig_all.tight_layout()
+        fig_all.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("box_scatter_all_fish.pdf" )))
+
 
 
             
