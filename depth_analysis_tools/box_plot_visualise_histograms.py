@@ -166,30 +166,32 @@ class EMDData():
         self.fish, self.preset = fish, preset
 
 
-def compute_average_plane(imgs):
+def compute_average_plane(imgs, preset):
+    print("Computing average plane")
     plane_models = []
     for img in imgs:
         depth_img = cv2.imread( os.path.join("depth_analysis_data/data/rs/depth", img["file_name"]), cv2.IMREAD_UNCHANGED)
         for i in range(3):
-            print("Img {} Iteration {} ".format(img["file_name"], i))
+            print("Preset {} Img {} Iteration {} ".format(preset, img["file_name"], i))
             plane_models.append(estimate_plane(depth_img))
-                
     plane_models = np.asarray(plane_models)
-    # Remember to normalize
     avg_plane_model = np.mean(plane_models, axis=0)
-    
-    return avg_plane_model
+    angles_to_plot = compute_angles_between_planes(plane_models)
+    return avg_plane_model, angles_to_plot
 
 def compute_angles_between_planes(plane_models):
-
+    angles = []
     for i in range(plane_models.shape[0]):
         plane1 = plane_models[i, :3]
         for j in range(i, plane_models.shape[0]):
             plane2 = plane_models[j, :3]
             if i != j:
-                angle_betweeen_planes = np.arccos(np.abs(plane1.dot(plane2)))
-
-
+                dot_product_between_planes = np.abs(plane1.dot(plane2))
+                plane1_norm = np.linalg.norm(plane1)
+                plane2_norm = np.linalg.norm(plane2)
+                angle_betweeen_planes = np.arccos(dot_product_between_planes/(plane1_norm*plane2_norm))
+                angles.append(angle_betweeen_planes)
+    return angles
 
 if __name__=="__main__":
         #calculate_distances(_plane = [2, -2, 5, 8], _fish = np.array([[4, -4, 3], [4, 4, 3]])) 
@@ -201,9 +203,11 @@ if __name__=="__main__":
         if not os.path.exists(OUTPUT_FOLDER):
             os.mkdir(OUTPUT_FOLDER)
 
-
         fig_all, (ax_box, ax_scatter) = plt.subplots(1, 2)
         ax_scatter.tick_params(axis="x", labelsize = 3, labelrotation = 30)
+        fig_angles, ax_angles = plt.subplots()
+        ax_angles.tick_params(axis="x", labelsize = 3, labelrotation = 30)  
+        ax_angles.set_ylabel("degrees")
 
         box_plot_data = []
         for idx, path in enumerate(ANNOTATIONS):    
@@ -211,15 +215,18 @@ if __name__=="__main__":
             emd_data = []
             emd_colors = []
             bins_to_use = np.arange(0, 0.06+0.0025, 0.0025)
-
+            
+            coco = COCO(path)
+            imgs = coco.loadImgs( coco.getImgIds() )
+            plane_model, angles = compute_average_plane(imgs, CONDITIONS_DICT[path])
+            ax_angles.scatter([CONDITIONS_DICT[path]]*len(angles), angles, alpha = 0.25, c=PLOT_COLORS[idx])
+            
             for fish in FISH:    
                 print("Working on ", fish, CONDITIONS_DICT[path], path)
-                coco = COCO(path)
                 query_cat_id = coco.getCatIds(fish)
                 query_anns = coco.loadAnns( coco.getAnnIds(catIds=query_cat_id) )
                 query_imgs = coco.loadImgs( coco.getImgIds(catIds=query_cat_id) )
-                compute_average_plane(query_imgs)    
-                exit(5)
+                
                 
                 freqs, bins, images = [], [], []
                 for i in range(len(query_imgs)):        
@@ -249,7 +256,7 @@ if __name__=="__main__":
                     fish_pcd = depth_map_to_masked_pc(_img=depth_img, _mask=mask)
                     
                     fish_pcd = o3d.geometry.PointCloud.voxel_down_sample(fish_pcd, voxel_size=VOXEL_SIZE) 
-                    plane_model = estimate_plane(_img = depth_img)
+                    #plane_model = estimate_plane(_img = depth_img)
                     height_profile = calculate_distances(plane_model, np.asarray(fish_pcd.points))
                     height_freqs, height_bins = np.histogram(height_profile, bins=bins_to_use, density=False)
 
@@ -354,7 +361,6 @@ if __name__=="__main__":
         ax_box.set_xticks([1, 2, 3, 4], list(CONDITIONS_DICT.values()))
         ax_box.tick_params(axis="x", labelsize = 3, labelrotation = 30)        
         
-        
         # Add legend to the scatter plot
         handlelist = [ax_scatter.plot([], marker="o", ls="", color=color)[0] for color in list(FISH_COLOR_DICT.values())]
         ax_scatter.legend(handlelist,list(FISH_COLOR_DICT.keys()), bbox_to_anchor=(1.1, 1), fontsize =5)
@@ -363,6 +369,9 @@ if __name__=="__main__":
         fig_all.tight_layout()
         fig_all.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("box_scatter_all_fish.pdf" )))
 
+        # Save angles plot
+        fig_angles.tight_layout()
+        fig_angles.savefig(os.path.join(OUTPUT_FOLDER, os.path.join("angles_plot.pdf" )))
 
 
             

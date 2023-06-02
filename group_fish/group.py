@@ -16,8 +16,9 @@ FISH_CATALOG = {
 COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'yellow', 'cyan', 'silver']
 BAR_COLORS = COLORS[:len(list(FISH_CATALOG.keys()))]
 
-GROUP_MIN = 16
-GROUP_MAX = 22
+NUMBER_OF_GROUPS = 25
+GROUP_MIN = 14
+GROUP_MAX = 24
 
 class GroupGenerator():
     def __init__(self):
@@ -46,17 +47,17 @@ class GroupGenerator():
 
         fig, ax = plt.subplots()
         fig.set_figwidth(12)
-        ax.bar(np.arange(len(self.groups)), sizes, align='center', alpha = 0.5, color = color)
+        ax.bar(np.arange(1, len(self.groups)+1), sizes, align='center', alpha = 0.5, color = color)
         ax.set_title(species + ' distribution')
         ax.set_xlabel("Group")
-        #ax.set_xticks(np.arange(len(self.groups)))
         ax.set_ylabel("Percentage")
+        ax.set_xticks(np.arange(1, NUMBER_OF_GROUPS+1))
         plt.savefig(species + ".png") 
 
     def draw_distribution_across_groups_one_figure(self):
         fig, axs = plt.subplots(len(list(FISH_CATALOG.keys())))
         fig.set_figheight(28)
-        fig.set_figwidth(16)
+        fig.set_figwidth(22)
 
         for species in FISH_CATALOG.keys():
             sizes = []
@@ -65,10 +66,11 @@ class GroupGenerator():
                 sizes.append(number_of_instances/len(group)*100)
             ax_idx = list(FISH_CATALOG.keys()).index(species)
             ax_color = COLORS[list(FISH_CATALOG.keys()).index(species)]
-            axs[ax_idx].bar(np.arange(len(self.groups)), sizes, align='center', alpha = 0.5, label = species, color = ax_color)
+            axs[ax_idx].bar(np.arange(1, len(self.groups)+1), sizes, align='center', alpha = 0.5, label = species, color = ax_color)
             axs[ax_idx].set_title(species + ' distribution')
             #axs[ax_idx].set_xlabel("Group")
             axs[ax_idx].set_ylabel("Percentage")
+            axs[ax_idx].set_xticks(np.arange(1, NUMBER_OF_GROUPS+1))
         #fig.legend(loc = "upper left")
         plt.savefig("distribution_across_groups.png")
         
@@ -88,6 +90,8 @@ class GroupGenerator():
     def draw_group_distributions(self):
         #group_distributions = []
         fig, ax = plt.subplots()
+        fig.set_figheight(10)
+        fig.set_figwidth(16)
         ax.set_xlabel("Group")
         ax.set_ylabel("Distribution")
         for group in self.groups:
@@ -97,9 +101,10 @@ class GroupGenerator():
                 number_of_instances = group.count(species)
                 size = number_of_instances/len(group)*100
                 ax_color = COLORS[list(FISH_CATALOG.keys()).index(species)]
-                ax.bar(self.groups.index(group), size, bottom=distribution_sum, align="center", alpha=0.5, label = species, color = ax_color)
+                ax.bar(self.groups.index(group)+1, size, bottom=distribution_sum, align="center", alpha=0.5, label = species, color = ax_color)
+                ax.set_xticks(np.arange(1, NUMBER_OF_GROUPS+1))
                 distribution_sum += size
-        ax.legend(list(FISH_CATALOG.keys()), loc='upper right')
+        ax.legend(list(FISH_CATALOG.keys()), loc='upper center', bbox_to_anchor=(0.5, 1.1), ncol=6)
         plt.savefig("group_distributions.png")
       
     def get_all_fish(self):
@@ -110,22 +115,29 @@ class GroupGenerator():
         rnd.shuffle(all_fish)
         return all_fish
     
-    def get_number_of_fish(self):
-        if len(self.groups) == 0:
-            return rnd.randint(GROUP_MIN, GROUP_MAX)
-        else:
-            current_avg = len(self.used_fish)/len(self.groups)
-            if current_avg < 18.52
-
-            
-
-        return number_of_fish
-
+    def reset(self):
+        print("Made {}/{} groups. Resetting".format(len(self.groups), NUMBER_OF_GROUPS))
+        self.available_fish = self.get_all_fish()
+        self.used_fish = []
+        self.groups = []
+    
     def get_group(self):
-        group = []
-        number_of_fish = self.get_number_of_fish()
+        number_of_fish = rnd.randint(GROUP_MIN, GROUP_MAX)
         
-        if number_of_fish > len(self.available_fish):
+        # State machine from hell
+        # There is enough fish to create a new group -> Create a new group
+        if number_of_fish <= len(self.available_fish):
+            group = []
+            #print("Number of fish {} Number of groups {}".format(len(self.available_fish), len(self.groups)))
+            for i in range(number_of_fish):
+                rnd_fish = rnd.choice(self.available_fish)
+                group.append(rnd_fish)
+                self.available_fish.remove(rnd_fish)
+                self.used_fish.append(rnd_fish)
+            self.groups.append(group)
+
+        # There is not enough fish to create a new group, but we have 25 groups already
+        elif number_of_fish > len(self.available_fish) and len(self.groups) == NUMBER_OF_GROUPS:
             number_of_fish = len(self.available_fish)
             for i in range(number_of_fish):
                 rnd_fish = rnd.choice(self.available_fish)
@@ -133,13 +145,10 @@ class GroupGenerator():
                 self.available_fish.remove(rnd_fish)
                 self.used_fish.append(rnd_fish)
 
-        else:
-            for i in range(number_of_fish):
-                rnd_fish = rnd.choice(self.available_fish)
-                group.append(rnd_fish)
-                self.available_fish.remove(rnd_fish)
-                self.used_fish.append(rnd_fish)
-            self.groups.append(group)
+        # There is not enough fish to create a new group and we have less than 25 groups
+        elif number_of_fish > len(self.available_fish) and len(self.groups) != NUMBER_OF_GROUPS:
+            self.reset()
+
 
     def write_groups(self):
         filename = "groups.txt"
@@ -157,33 +166,29 @@ class GroupGenerator():
             
             with open(filename, "a") as f:
                 f.write(string_to_write)
-            
-
-            
-        
-
-
 
 if __name__=="__main__":
-    generator = GroupGenerator()
+    for i in range(100):
+        print("Iteration", i)
+        generator = GroupGenerator()
 
-    while len(generator.available_fish):
-        generator.get_group()
+        while len(generator.available_fish):
+            generator.get_group()
 
-    print("Number of groups", len(generator.groups))
-    for group in generator.groups: 
-        group.sort()
-        print("Group No.", generator.groups.index(group), "Number of fish", len(group), group)
-    print("===========================")
+        print("Number of groups", len(generator.groups))
+        for group in generator.groups: 
+            group.sort()
+            print("Group No.", generator.groups.index(group)+1, "Number of fish", len(group), group)
+        print("===========================")
 
-    generator.write_groups()
-    exit(5)
+        generator.write_groups()
 
-    #generator.draw_group_distribution(generator.groups[2])
-    generator.draw_group_distributions()
+        #generator.draw_group_distribution(generator.groups[2])
+        generator.draw_group_distributions()
 
-    generator.draw_global_distribution()
-    generator.draw_distribution_across_groups_one_figure()
-    for species in FISH_CATALOG.keys():
-        color_idx = list(FISH_CATALOG.keys()).index(species)
-        generator.draw_distribution_across_groups(species, COLORS[color_idx])
+        generator.draw_global_distribution()
+        generator.draw_distribution_across_groups_one_figure()
+        for species in FISH_CATALOG.keys():
+            color_idx = list(FISH_CATALOG.keys()).index(species)
+            generator.draw_distribution_across_groups(species, COLORS[color_idx])
+        
