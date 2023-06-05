@@ -33,6 +33,7 @@ ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
 
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
+CALIBRATION_PATH = "calibration/"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
 ANNOTATED_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotated/")
@@ -42,6 +43,8 @@ ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
 LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
 HEATMAPS_PATH = os.path.join(ROOT_PATH, "heatmaps/")
+CALIBRATION_PATH_JAI = os.path.join(ROOT_PATH, CALIBRATION_PATH,  JAI_PATH)
+CALIBRATION_PATH_RS = os.path.join(ROOT_PATH, CALIBRATION_PATH,  RS_PATH)
 
 def create_folders():
     if not os.path.exists(ROOT_PATH):
@@ -57,6 +60,9 @@ def create_folders():
         os.mkdir(ANNOTATIONS_PATH_RS)
         os.mkdir(LOGS_PATH)
         os.mkdir(HEATMAPS_PATH)
+        os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+        os.mkdir(CALIBRATION_PATH_JAI)
+        os.mkdir(CALIBRATION_PATH_RS)
 
 
 class Viewer():

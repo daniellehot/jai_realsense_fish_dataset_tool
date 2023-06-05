@@ -145,7 +145,7 @@ class GroupGenerator():
                 self.available_fish.remove(rnd_fish)
                 self.used_fish.append(rnd_fish)
 
-        # There is not enough fish to create a new group and we have less than 25 groups
+        # There is less fish than required to create a new group and there are more or less groups 
         elif number_of_fish > len(self.available_fish) and len(self.groups) != NUMBER_OF_GROUPS:
             self.reset()
 

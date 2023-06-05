@@ -49,7 +49,7 @@ class RS_Camera():
                 
                 visualpreset = sensor.get_option_value_description(rs.option.visual_preset, 3)
                 if visualpreset == "High Accuracy":
-                    print("Visual preset " + str(visualpreset))
+                    print("RS: Visual preset set to " + str(visualpreset))
                     sensor.set_option(rs.option.visual_preset, 3)
                 
                 sensor.set_option(rs.option.enable_auto_exposure, True) 
@@ -67,6 +67,11 @@ class RS_Camera():
                 sensor.set_option(rs.option.sharpness, 100.0)
                 #sensor.set_option(rs.option.white_balance, 4200.0)
                 sensor.set_option(rs.option.enable_auto_white_balance, True) 
+    
+    def get_color_img(self):
+        aligned_frames = self.align.process(self.pipeline.wait_for_frames())
+        self.color_frame = aligned_frames.get_color_frame()
+        return np.asanyarray(self.color_frame.get_data())
 
     def get_data(self):
         ''' In case we want to use more filtering 
@@ -111,7 +116,6 @@ class RS_Camera():
 
         self.pointcloud = self.get_colored_pointcloud()
         #print("RS: Received pointcloud")
-
 
     def get_colored_pointcloud(self):
         #print("RS: get_colored_pointcloud()")
