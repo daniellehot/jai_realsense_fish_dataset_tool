@@ -76,6 +76,7 @@ class Viewer():
         self.jai_cam.GainR = 1.39
 
         self.rs_cam = rs_camera.RS_Camera()
+        self.show_rs_stream = False
 
         self.coordinates = []
         self.species = []
@@ -95,7 +96,7 @@ class Viewer():
 
         self.start_keylistener()
         self.create_session_log()
-        self.get_resized_dimension(scale_percent=50)
+        self.resized_dim = self.get_resized_dimension(width=2464, height=2056, scale_percent=50)
 
         self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
         self.show_heatmap = False
@@ -140,6 +141,12 @@ class Viewer():
                         self.show_heatmap = False
                     else:
                         self.show_heatmap = True
+
+                if key.char == "k":
+                    if self.show_rs_stream:
+                        self.show_rs_stream = False
+                    else:
+                        self.show_rs_stream = True
                 
             if key.char == "Z":
                 self.remove_last()
@@ -174,33 +181,45 @@ class Viewer():
             header = ['species', 'id', 'side', 'width', 'height', 'entry'] 
             writer.writerow(header)
         
-    def get_resized_dimension(self, scale_percent):
-        width = int(2464 * scale_percent / 100)
-        height = int(2056 * scale_percent / 100)
-        self.resized_dim = (width, height)
+    #def get_resized_dimension(self, scale_percent):
+    #    width = int(2464 * scale_percent / 100)
+    #    height = int(2056 * scale_percent / 100)
+    #    self.resized_dim = (width, height)
+    
+    def get_resized_dimension(self, width, height, scale_percent):
+        width_new = int(width * scale_percent / 100)
+        height_new = int(height * scale_percent / 100)
+        return (width_new, height_new)
 
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
             self.img_cv = self.jai_cam.Img
         
     def show(self):
-        self.window_title = "jai"
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
         if self.show_heatmap:
             self.scaled_img = cv.addWeighted(self.scaled_img, 0.5, self.heatmapper.heatmap_img_colored, 0.5, 0.0)
         self.draw_annotations()
         self.update_log()
+        
+        window_title = "stream"
+        cv.namedWindow(window_title, cv.WINDOW_AUTOSIZE)
+        
+        if self.show_rs_stream:
+            rs_img = self.rs_cam.get_color_img()
+            rs_img = cv.resize(rs_img, self.get_resized_dimension(width=rs_img.shape[1], height=rs_img.shape[0], scale_percent=50))
+            cv.imshow(window_title, rs_img)
+        else:
+            if self.saving:
+                cv.setMouseCallback(window_title, self.do_nothing)
+            elif self.mode == "annotating": 
+                cv.setMouseCallback(window_title, self.get)
+            elif self.mode == "dragging":
+                cv.setMouseCallback(window_title, self.drag)
+            elif self.mode == "correcting": 
+                cv.setMouseCallback(window_title, self.remove)
+            cv.imshow(window_title, self.scaled_img)
 
-        cv.namedWindow(self.window_title, cv.WINDOW_AUTOSIZE)
-        if self.saving:
-            cv.setMouseCallback(self.window_title, self.do_nothing)
-        elif self.mode == "annotating": 
-            cv.setMouseCallback(self.window_title, self.get)
-        elif self.mode == "dragging":
-            cv.setMouseCallback(self.window_title, self.drag)
-        elif self.mode == "correcting": 
-            cv.setMouseCallback(self.window_title, self.remove)
-        cv.imshow(self.window_title, self.scaled_img)
         
         
     def draw_annotations(self):

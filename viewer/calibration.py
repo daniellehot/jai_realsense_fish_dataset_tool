@@ -47,7 +47,7 @@ class Calibration():
 
     def on_press(self, key):
         try:
-            if key.char == "S":
+            if key.char == "s":
                 self.color = (0, 255, 0)
                 self.save()
                 self.image_number += 1
