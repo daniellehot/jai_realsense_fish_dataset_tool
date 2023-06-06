@@ -1,6 +1,7 @@
 # Standard modules
 import cv2 as cv
 import math
+import numpy as np
 from pynput import keyboard
 import csv
 from datetime import datetime
@@ -96,10 +97,12 @@ class Viewer():
 
         self.start_keylistener()
         self.create_session_log()
-        self.resized_dim = self.get_resized_dimension(width=2464, height=2056, scale_percent=50)
+        self.resized_dim = self.get_resized_dimension(width=2464, height=2056, scale_percent=45)
 
         self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
         self.show_heatmap = False
+
+        self.number_of_images_saved = 0
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -194,6 +197,8 @@ class Viewer():
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
             self.img_cv = self.jai_cam.Img
+            #self.img_cv = np.pad(self.jai_cam.Img, ( (0,0), (0, 200), (0, 0) ), mode='constant') 
+
         
     def show(self):
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
@@ -218,9 +223,14 @@ class Viewer():
                 cv.setMouseCallback(window_title, self.drag)
             elif self.mode == "correcting": 
                 cv.setMouseCallback(window_title, self.remove)
+            
             cv.imshow(window_title, self.scaled_img)
+            
+        padding_img = np.zeros((150, 600, 3))
+        system_info = "{}/66 images mode:{}".format(str(self.number_of_images_saved), self.mode)
+        cv.putText(padding_img, system_info, (50, 75), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        cv.imshow("info", padding_img)
 
-        
         
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
@@ -306,6 +316,7 @@ class Viewer():
         self.rs_cam.get_data()
 
         filename = self.get_filename(RGB_PATH_JAI)
+        self.number_of_images_saved = str(int(filename))
         self.saved_files = []
 
         self.heatmapper.save(HEATMAPS_PATH + filename + ".png")

@@ -22,7 +22,7 @@ from viewer import create_folders, CALIBRATION_PATH_JAI, CALIBRATION_PATH_RS
 
 class Calibration():
     def __init__(self):
-        self.image_number = 0
+        self.image_number = 1
         self.color = (0, 0, 255)
         self.start_keylistener()
 
