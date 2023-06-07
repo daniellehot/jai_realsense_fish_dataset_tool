@@ -7,10 +7,10 @@ import os
 FISH_CATALOG = {
     "cod": 102,
     "haddock": 119,
-    "hake": 52,
-    "other": 29,
+    "*hake": 52,
+    "*other": 29,
     "whiting": 103,
-    "horse mack": 58
+    "*horse mack": 58
 }
 
 COLORS = ['blue', 'orange', 'green', 'red', 'purple', 'brown', 'yellow', 'cyan', 'silver']
@@ -123,8 +123,7 @@ class GroupGenerator():
     
     def get_group(self):
         number_of_fish = rnd.randint(GROUP_MIN, GROUP_MAX)
-        
-        # State machine from hell
+ 
         # There is enough fish to create a new group -> Create a new group
         if number_of_fish <= len(self.available_fish):
             group = []
@@ -145,7 +144,7 @@ class GroupGenerator():
                 self.available_fish.remove(rnd_fish)
                 self.used_fish.append(rnd_fish)
 
-        # There is less fish than required to create a new group and there are more or less groups 
+        # There is less fish than required to create a new group and there are more or less groups than the target
         elif number_of_fish > len(self.available_fish) and len(self.groups) != NUMBER_OF_GROUPS:
             self.reset()
 
@@ -168,27 +167,25 @@ class GroupGenerator():
                 f.write(string_to_write)
 
 if __name__=="__main__":
-    for i in range(100):
-        print("Iteration", i)
-        generator = GroupGenerator()
+    generator = GroupGenerator()
 
-        while len(generator.available_fish):
-            generator.get_group()
+    while len(generator.available_fish):
+        generator.get_group()
 
-        print("Number of groups", len(generator.groups))
-        for group in generator.groups: 
-            group.sort()
-            print("Group No.", generator.groups.index(group)+1, "Number of fish", len(group), group)
-        print("===========================")
+    print("Number of groups", len(generator.groups))
+    for group in generator.groups: 
+        group.sort()
+        print("Group No.", generator.groups.index(group)+1, "Number of fish", len(group), group)
+    print("===========================")
 
-        generator.write_groups()
+    generator.write_groups()
 
-        #generator.draw_group_distribution(generator.groups[2])
-        generator.draw_group_distributions()
+    #generator.draw_group_distribution(generator.groups[2])
+    generator.draw_group_distributions()
 
-        generator.draw_global_distribution()
-        generator.draw_distribution_across_groups_one_figure()
-        for species in FISH_CATALOG.keys():
-            color_idx = list(FISH_CATALOG.keys()).index(species)
-            generator.draw_distribution_across_groups(species, COLORS[color_idx])
+    generator.draw_global_distribution()
+    generator.draw_distribution_across_groups_one_figure()
+    for species in FISH_CATALOG.keys():
+        color_idx = list(FISH_CATALOG.keys()).index(species)
+        generator.draw_distribution_across_groups(species, COLORS[color_idx])
         
