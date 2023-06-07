@@ -5,6 +5,7 @@ import numpy as np
 from pynput import keyboard
 import csv
 from datetime import datetime
+import shutil 
 
 import os
 HOME_PATH = os.path.expanduser('~')
@@ -12,15 +13,12 @@ HOME_PATH = os.path.expanduser('~')
 # Custom modules
 import sys
 
-#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/realsense")
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/realsense"))
 import rs_camera
 
-#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/tkinter")
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/tkinter"))
 import tkinter_gui as gui
 
-#sys.path.append("/home/daniel/jai_realsense_fish_dataset_tool/jaiGo/")
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
 
@@ -31,7 +29,6 @@ import heatmap
 ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
 ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/data/")
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
-
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
 CALIBRATION_PATH = "calibration/"
@@ -46,6 +43,8 @@ LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
 HEATMAPS_PATH = os.path.join(ROOT_PATH, "heatmaps/")
 CALIBRATION_PATH_JAI = os.path.join(ROOT_PATH, CALIBRATION_PATH,  JAI_PATH)
 CALIBRATION_PATH_RS = os.path.join(ROOT_PATH, CALIBRATION_PATH,  RS_PATH)
+
+GOAL_NO_OF_IMAGES = 66
 
 def create_folders():
     if not os.path.exists(ROOT_PATH):
@@ -64,6 +63,32 @@ def create_folders():
         os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
         os.mkdir(CALIBRATION_PATH_JAI)
         os.mkdir(CALIBRATION_PATH_RS)
+    else:
+        number_of_files = len(os.listdir(RGB_PATH_JAI))
+        if number_of_files >= GOAL_NO_OF_IMAGES:
+            key = input("There already exists a data folder with {}/{} images. Do you wish to overwrite it? Y/N ".format(number_of_files, GOAL_NO_OF_IMAGES))
+            if key == "Y" or key == "y":
+                shutil.rmtree(ROOT_PATH)
+                os.mkdir(ROOT_PATH)
+                os.mkdir(os.path.join(ROOT_PATH, RS_PATH))
+                os.mkdir(os.path.join(ROOT_PATH, JAI_PATH))
+                os.mkdir(RGB_PATH_JAI)
+                os.mkdir(ANNOTATED_PATH_JAI)
+                os.mkdir(RGB_PATH_RS)
+                os.mkdir(DEPTH_PATH_RS)
+                os.mkdir(PC_PATH_RS)
+                os.mkdir(ANNOTATIONS_PATH_JAI)
+                os.mkdir(ANNOTATIONS_PATH_RS)
+                os.mkdir(LOGS_PATH)
+                os.mkdir(HEATMAPS_PATH)
+                os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+                os.mkdir(CALIBRATION_PATH_JAI)
+                os.mkdir(CALIBRATION_PATH_RS)
+            elif key == "N" or key == "n":
+                pass
+            else:
+                print("Unrecognized input. Quitting...")
+                exit(5)
 
 
 class Viewer():
@@ -102,7 +127,7 @@ class Viewer():
         self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
         self.show_heatmap = False
 
-        self.number_of_images_saved = 0
+        self.number_of_images_saved = len(os.listdir(RGB_PATH_JAI))
 
     def start_stream(self):
         self.jai_cam.FindAndConnect()
@@ -184,11 +209,6 @@ class Viewer():
             header = ['species', 'id', 'side', 'width', 'height', 'entry'] 
             writer.writerow(header)
         
-    #def get_resized_dimension(self, scale_percent):
-    #    width = int(2464 * scale_percent / 100)
-    #    height = int(2056 * scale_percent / 100)
-    #    self.resized_dim = (width, height)
-    
     def get_resized_dimension(self, width, height, scale_percent):
         width_new = int(width * scale_percent / 100)
         height_new = int(height * scale_percent / 100)
@@ -197,8 +217,6 @@ class Viewer():
     def retrieve_measures(self):
         if self.jai_cam.GrabImage():
             self.img_cv = self.jai_cam.Img
-            #self.img_cv = np.pad(self.jai_cam.Img, ( (0,0), (0, 200), (0, 0) ), mode='constant') 
-
         
     def show(self):
         self.scaled_img = cv.resize(self.img_cv, self.resized_dim)
@@ -227,8 +245,10 @@ class Viewer():
             cv.imshow(window_title, self.scaled_img)
             
         padding_img = np.zeros((150, 600, 3))
-        system_info = "{}/66 images mode:{}".format(str(self.number_of_images_saved), self.mode)
-        cv.putText(padding_img, system_info, (50, 75), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        system_info = "{}/{} images mode:{}".format(str(self.number_of_images_saved), str(GOAL_NO_OF_IMAGES), self.mode)
+        cv.putText(padding_img, system_info, (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        if self.number_of_images_saved >= GOAL_NO_OF_IMAGES:
+            cv.putText(padding_img, "!!!GROUP FINISHED!!!", (150, 100 ), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
         cv.imshow("info", padding_img)
 
         
@@ -316,7 +336,7 @@ class Viewer():
         self.rs_cam.get_data()
 
         filename = self.get_filename(RGB_PATH_JAI)
-        self.number_of_images_saved = str(int(filename))
+        self.number_of_images_saved = int(filename)
         self.saved_files = []
 
         self.heatmapper.save(HEATMAPS_PATH + filename + ".png")
@@ -386,8 +406,8 @@ class Viewer():
     def get_filename(self, path):
         number_of_files = len(os.listdir(path))
         number_of_files += 1
-        number_of_files = str(number_of_files).zfill(5)
-        return  number_of_files
+        filename = str(number_of_files).zfill(5)
+        return  filename
     
     def update_log(self):
         data = self.format_annotations(log_format=True)
