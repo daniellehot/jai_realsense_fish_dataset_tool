@@ -31,7 +31,6 @@ ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/dat
 ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
-CALIBRATION_PATH = "calibration/"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
 RGB_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "rgb/")
 ANNOTATED_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotated/")
@@ -41,14 +40,29 @@ ANNOTATIONS_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "annotations/")
 ANNOTATIONS_PATH_JAI = os.path.join(ROOT_PATH, JAI_PATH, "annotations/")
 LOGS_PATH = os.path.join(ROOT_PATH, "logs/")
 HEATMAPS_PATH = os.path.join(ROOT_PATH, "heatmaps/")
-CALIBRATION_PATH_JAI = os.path.join(ROOT_PATH, CALIBRATION_PATH,  JAI_PATH)
-CALIBRATION_PATH_RS = os.path.join(ROOT_PATH, CALIBRATION_PATH,  RS_PATH)
 
 GOAL_NO_OF_IMAGES = 66
 
 def create_folders():
     if not os.path.exists(ROOT_PATH):
-        os.mkdir(ROOT_PATH)
+        key = input("There is no data folder, implying the calibration procedure has not been run yet. Do you wish to continue? Y/N ")
+        if key == 'Y' or key == 'y':
+            os.mkdir(ROOT_PATH)
+            os.mkdir(os.path.join(ROOT_PATH, RS_PATH))
+            os.mkdir(os.path.join(ROOT_PATH, JAI_PATH))
+            os.mkdir(RGB_PATH_JAI)
+            os.mkdir(ANNOTATED_PATH_JAI)
+            os.mkdir(RGB_PATH_RS)
+            os.mkdir(DEPTH_PATH_RS)
+            os.mkdir(PC_PATH_RS)
+            os.mkdir(ANNOTATIONS_PATH_JAI)
+            os.mkdir(ANNOTATIONS_PATH_RS)
+            os.mkdir(LOGS_PATH)
+            os.mkdir(HEATMAPS_PATH)
+        else:
+            print("Quitting...")
+            exit(5)
+    elif os.path.exists(ROOT_PATH) and not os.path.exists(RGB_PATH_JAI):
         os.mkdir(os.path.join(ROOT_PATH, RS_PATH))
         os.mkdir(os.path.join(ROOT_PATH, JAI_PATH))
         os.mkdir(RGB_PATH_JAI)
@@ -60,9 +74,6 @@ def create_folders():
         os.mkdir(ANNOTATIONS_PATH_RS)
         os.mkdir(LOGS_PATH)
         os.mkdir(HEATMAPS_PATH)
-        os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
-        os.mkdir(CALIBRATION_PATH_JAI)
-        os.mkdir(CALIBRATION_PATH_RS)
     else:
         number_of_files = len(os.listdir(RGB_PATH_JAI))
         if number_of_files >= GOAL_NO_OF_IMAGES:
@@ -81,9 +92,6 @@ def create_folders():
                 os.mkdir(ANNOTATIONS_PATH_RS)
                 os.mkdir(LOGS_PATH)
                 os.mkdir(HEATMAPS_PATH)
-                os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
-                os.mkdir(CALIBRATION_PATH_JAI)
-                os.mkdir(CALIBRATION_PATH_RS)
             elif key == "N" or key == "n":
                 pass
             else:
@@ -304,7 +312,8 @@ class Viewer():
 
     def do_nothing(self, event, x, y, flags, param):
         pass
-
+    
+    """
     def get_annotation(self):
         self.guiInstance = gui.AnnotationApp()
         while True:
@@ -322,7 +331,26 @@ class Viewer():
                 self.guiInstance.master.destroy()
                 self.guiInstance = None
                 return id, species, side
+    """
+
+    def get_annotation(self):
+        guiInstance = gui.AnnotationApp()
+        while True:
+            guiInstance.master.update_idletasks()
+            guiInstance.master.update()
+            if guiInstance.cancelled:
+                #print("Annotation cancelled")
+                guiInstance.master.destroy()
+                return  str(-1), "cancel", "none"
+            if guiInstance.id != -1 and guiInstance.species != None:
+                #print("Annotation acquired")
+                id = guiInstance.id
+                species = guiInstance.species
+                side = guiInstance.side
+                guiInstance.master.destroy()
+                return id, species, side
             
+
     def check_for_double_entry(self, _species, _id, _side):
         current_annotation = str(_species) + str(_id) 
         for (species, id) in zip(self.species, self.ids):
@@ -402,6 +430,7 @@ class Viewer():
             os.remove(file)
             print("V: Removed ", file)
         self.saved_files.clear() 
+        self.number_of_images_saved -= 1
 
     def get_filename(self, path):
         number_of_files = len(os.listdir(path))

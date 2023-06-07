@@ -3,6 +3,7 @@ import cv2 as cv
 from pynput import keyboard
 from datetime import datetime
 import numpy as np
+import shutil
 
 import os
 HOME_PATH = os.path.expanduser('~')
@@ -18,11 +19,39 @@ import rs_camera
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
 
-from viewer import create_folders, CALIBRATION_PATH_JAI, CALIBRATION_PATH_RS
+from viewer import ROOT_PATH, JAI_PATH, RS_PATH
+
+CALIBRATION_PATH = "calibration/"
+CALIBRATION_PATH_JAI = os.path.join(ROOT_PATH, CALIBRATION_PATH,  JAI_PATH)
+CALIBRATION_PATH_RS = os.path.join(ROOT_PATH, CALIBRATION_PATH,  RS_PATH)
+
+def create_folders():
+    if not os.path.exists(ROOT_PATH):
+        os.mkdir(ROOT_PATH)
+        os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+        os.mkdir(CALIBRATION_PATH_JAI)
+        os.mkdir(CALIBRATION_PATH_RS)
+    elif os.path.exists(ROOT_PATH) and not os.path.exists(CALIBRATION_PATH_JAI):
+        os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+        os.mkdir(CALIBRATION_PATH_JAI)
+        os.mkdir(CALIBRATION_PATH_RS)
+    else:
+        key = input("Calibration folder already exist. Do you wish to overwrite it? Y/N ")
+        if key == 'Y' or key == 'y':
+            shutil.rmtree(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+            os.mkdir(ROOT_PATH)
+            os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
+            os.mkdir(CALIBRATION_PATH_JAI)
+            os.mkdir(CALIBRATION_PATH_RS)
+        elif key == 'N' or key == 'n':
+            pass
+        else:
+            print("Unrecognized input. Quitting...")
+            exit(5)
 
 class Calibration():
     def __init__(self):
-        self.image_number = 1
+        self.image_number = len(os.listdir(CALIBRATION_PATH_JAI))
         self.color = (0, 0, 255)
         self.start_keylistener()
 
@@ -67,7 +96,6 @@ class Calibration():
         if self.jai_cam.GrabImage():
             self.jai_img = self.jai_cam.Img
         self.rs_img = self.rs_cam.get_color_img()
-
         #Combine 
         padding = (self.jai_img.shape[0]-self.rs_img.shape[0], self.jai_img.shape[1]-self.rs_img.shape[1])
         padding = (int(padding[0]/2), int(padding[1]/2))
@@ -83,11 +111,11 @@ class Calibration():
         self.window_title = 'calibration'
         resized_shape = self.get_resized_dimensions(self.combined_img.shape, 40)
         resized_img = cv.resize(self.combined_img, resized_shape)
-        cv.putText(resized_img, str(self.image_number), (resized_img.shape[1]-75, 75), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 5, cv.LINE_AA, False)
+        cv.putText(resized_img, str(self.image_number), (resized_img.shape[1]-75, 75), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
         cv.imshow(self.window_title, resized_img) 
     
     def save(self):
-        filename = str(self.image_number).zfill(5) + ".png"
+        filename = str(self.image_number+1).zfill(5) + ".png"
         cv.imwrite(os.path.join(CALIBRATION_PATH_JAI, filename), self.jai_img, [cv.IMWRITE_PNG_COMPRESSION, 0])
         print("C: {} CALIBRATION saved".format(datetime.now(), os.path.join(CALIBRATION_PATH_JAI, filename)))
         cv.imwrite(os.path.join(CALIBRATION_PATH_RS, filename), self.rs_img, [cv.IMWRITE_PNG_COMPRESSION, 0])

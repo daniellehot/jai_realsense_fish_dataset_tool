@@ -13,7 +13,6 @@ class AnnotationApp():
         self.breakTheLoop = False
         self.cancelled = None
 
-
     def initWindow(self):
         self.master = Tk()
         self.master.protocol("WM_DELETE_WINDOW", self.onClose)
@@ -93,7 +92,6 @@ class AnnotationApp():
         else:  
             return True
     
-
     def showErrorMsg(self, text):
         messagebox.showerror("Error", text)
     
