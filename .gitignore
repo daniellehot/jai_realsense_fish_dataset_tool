@@ -221,6 +221,7 @@ pyrightconfig.json
 
 viewer/data/*
 viewer/*data*
+viewer/group_*
 
 realsense/test_data/*
 
