@@ -36,10 +36,9 @@ def create_folders():
         os.mkdir(CALIBRATION_PATH_JAI)
         os.mkdir(CALIBRATION_PATH_RS)
     else:
-        key = input("Calibration folder already exist. Do you wish to overwrite it? Y/N ")
+        key = input("Calibration folder with {} images already exist. Do you wish to overwrite it? Y/N ".format(len(os.listdir(CALIBRATION_PATH_JAI))))
         if key == 'Y' or key == 'y':
             shutil.rmtree(os.path.join(ROOT_PATH, CALIBRATION_PATH))
-            os.mkdir(ROOT_PATH)
             os.mkdir(os.path.join(ROOT_PATH, CALIBRATION_PATH))
             os.mkdir(CALIBRATION_PATH_JAI)
             os.mkdir(CALIBRATION_PATH_RS)

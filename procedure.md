@@ -42,3 +42,14 @@
     # Copy the renamed data folder to the harddrive. 
     cp -r -v -n group_1 $HARDDRIVE
 ```
+
+### Group preparation
+Make sure all fish are somewhat thawn. Fish should be washed and made wet to better simulate an environment of a fishing vessel. Fish should be regularly sprayed with water to remain wet.  
+
+A group is split into 2 parts, denoted as Half A and Half B. Fish are placed on the conveoyr belt with random side up, i.e. randly pick LEFT or RIGHT side. Fish should not all be placed with the same side up. One set of images consists of half + side. There are 6 sets:  
+1. Half A, Side 1
+2. Half B, Side 1
+3. Half A+B, Side 1
+4. Half A, Side 2
+5. Half B, Side 2
+6. Half A+B, Side 2
