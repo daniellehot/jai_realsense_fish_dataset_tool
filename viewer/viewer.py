@@ -6,29 +6,25 @@ from pynput import keyboard
 import csv
 from datetime import datetime
 import shutil 
-
-import os
-HOME_PATH = os.path.expanduser('~')
+import copy
 
 # Custom modules
+import os
+HOME_PATH = os.path.expanduser('~')
 import sys
-
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/realsense"))
 import rs_camera
-
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/tkinter"))
 import tkinter_gui as gui
-
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/jaiGo"))
 import pyJaiGo
-
 sys.path.append(os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/heatmap"))
 import heatmap
 
 ## PATH CONSTANTS ##
-ROOT_PATH = "/media/daniel/4F468D1074109532/autofisk/data/"
+ROOT_HARDDRIVE = "/media/daniel/4F468D1074109532/autofisk/data/"
 ROOT_LOCAL = os.path.join(HOME_PATH, "jai_realsense_fish_dataset_tool/viewer/data/")
-ROOT_PATH = ROOT_LOCAL #ONLY USED FOR TESTING
+ROOT_PATH = ROOT_LOCAL #  
 RS_PATH = "rs/"
 JAI_PATH = "jai/"
 RGB_PATH_RS = os.path.join(ROOT_PATH, RS_PATH, "rgb/")
@@ -116,15 +112,16 @@ class Viewer():
         self.species = []
         self.ids = []
         self.sides = []
+        self.previous_coordinates = [] # Used for checking which fish have already been moved
         
         self.saving = False
-        
         self.mode_color_dict = {"annotating" : (0, 0, 255),
                                 "dragging" : (0, 255, 255), 
                                 "correcting" : (255, 0, 0),
                                 "saving" : (0, 255, 0)}                                 
         self.mode = "annotating"
         self.color = self.mode_color_dict[self.mode]
+        self.font_size = 1
         self.dragging = False
         self.dragged_point_idx = None
 
@@ -153,6 +150,7 @@ class Viewer():
                 self.saving = True
                 self.color = self.mode_color_dict["saving"]
                 self.heatmapper.update(self.img_cv)
+                self.previous_coordinates = copy.deepcopy(self.coordinates)
                 self.save_data()
                 self.saving = False
                 self.color = self.mode_color_dict[self.mode]
@@ -183,7 +181,17 @@ class Viewer():
                         self.show_rs_stream = False
                     else:
                         self.show_rs_stream = True
+
+                if key.char == "+":
+                    self.font_size += 0.1 
+                    if self.font_size > 1.5:
+                        self.font_size = 1.5
                 
+                if key.char == "-":
+                    self.font_size -= 0.1
+                    if self.font_size < 0.5:
+                        self.font_size = 0.5
+                    
             if key.char == "Z":
                 self.remove_last()
 
@@ -192,6 +200,7 @@ class Viewer():
                 self.species.clear()
                 self.ids.clear()
                 self.sides.clear()
+                self.previous_coordinates.clear()
                 self.mode = "annotating"
                 self.color = self.mode_color_dict[self.mode]
 
@@ -235,7 +244,6 @@ class Viewer():
         
         window_title = "stream"
         cv.namedWindow(window_title, cv.WINDOW_AUTOSIZE)
-        
         if self.show_rs_stream:
             rs_img = self.rs_cam.get_color_img()
             rs_img = cv.resize(rs_img, self.get_resized_dimension(width=rs_img.shape[1], height=rs_img.shape[0], scale_percent=50))
@@ -249,25 +257,29 @@ class Viewer():
                 cv.setMouseCallback(window_title, self.drag)
             elif self.mode == "correcting": 
                 cv.setMouseCallback(window_title, self.remove)
-            
             cv.imshow(window_title, self.scaled_img)
-            
-        padding_img = np.zeros((150, 600, 3))
-        system_info = "{}/{} images mode:{}".format(str(self.number_of_images_saved), str(GOAL_NO_OF_IMAGES), self.mode)
-        cv.putText(padding_img, system_info, (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
-        if self.number_of_images_saved >= GOAL_NO_OF_IMAGES:
-            cv.putText(padding_img, "!!!GROUP FINISHED!!!", (150, 100 ), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
-        cv.imshow("info", padding_img)
+        self.show_info_window()
 
-        
+    def show_info_window(self):
+        info_img = np.zeros((150, 600, 3))
+        system_info = "{}/{} images mode:{}".format(str(self.number_of_images_saved), str(GOAL_NO_OF_IMAGES), self.mode)
+        cv.putText(info_img, system_info, (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        if self.number_of_images_saved >= GOAL_NO_OF_IMAGES:
+            cv.putText(info_img, "!!!GROUP FINISHED!!!", (150, 100 ), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        cv.imshow("info", info_img)
+
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
             cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
             annotation = id + side + "-" + species
             #Text border
-            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 10, cv.LINE_AA, False)
+            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (0, 0, 0), 10, cv.LINE_AA, False)
             #Actual text
-            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 2, cv.LINE_AA, False)
+            if self.mode == "dragging" and len(self.previous_coordinates) != 0 and coordinate in self.previous_coordinates:
+                cv.circle(self.scaled_img, coordinate, 10, (25, 140, 255), 2)
+                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (25, 140, 255), 2, cv.LINE_AA, False)
+            else:
+                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.color, 2, cv.LINE_AA, False)
 
     def get(self, event, x, y, flags, param):
         if event == cv.EVENT_LBUTTONDOWN:
@@ -283,7 +295,6 @@ class Viewer():
     def drag(self, event, x, y, flags, param):
         if self.dragging:
             self.coordinates[self.dragged_point_idx] = (x, y)
-
             if event == cv.EVENT_LBUTTONUP:
                 #print("Stopped updating the point")
                 self.dragging = False
@@ -349,7 +360,6 @@ class Viewer():
                 side = guiInstance.side
                 guiInstance.master.destroy()
                 return id, species, side
-            
 
     def check_for_double_entry(self, _species, _id, _side):
         current_annotation = str(_species) + str(_id) 
