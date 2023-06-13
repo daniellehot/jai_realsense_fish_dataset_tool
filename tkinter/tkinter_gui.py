@@ -27,8 +27,8 @@ class AnnotationApp():
 
         self.menuSelection = StringVar(self.master)
         #self.menuSelection.set("cod") #TO SET A DEFAULT VALUE
-        #menu = OptionMenu(self.master, self.menuSelection, "cod", "haddock", "hake", "horse mackerel", "whiting", "saithe", "other")
-        menu = OptionMenu(self.master, self.menuSelection, "cod", "haddock", "hake", "horse mackerel", "whiting", "other")
+        menu = OptionMenu(self.master, self.menuSelection, "cod", "haddock", "hake", "horse mackerel", "whiting", "saithe", "other")
+        #menu = OptionMenu(self.master, self.menuSelection, "cod", "haddock", "hake", "horse mackerel", "whiting", "other")
         menu.grid(row=0, column=1, ipadx=self.pad_x, ipady=self.pad_y)
         menu.config(font=font18)
         menu_options = self.master.nametowidget(menu.menuname)  # Get menu widget.
