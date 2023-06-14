@@ -116,7 +116,8 @@ class Viewer():
         
         self.saving = False
         self.mode_color_dict = {"annotating" : (0, 0, 255),
-                                "dragging" : (0, 255, 255), 
+                                "dragging" : (0, 255, 255),
+                                "not_moved" : (25, 140, 255), 
                                 "correcting" : (255, 0, 0),
                                 "saving" : (0, 255, 0)}                                 
         self.mode = "annotating"
@@ -150,8 +151,8 @@ class Viewer():
                 self.saving = True
                 self.color = self.mode_color_dict["saving"]
                 self.heatmapper.update(self.img_cv)
-                self.previous_coordinates = copy.deepcopy(self.coordinates)
                 self.save_data()
+                self.previous_coordinates = copy.deepcopy(self.coordinates)
                 self.saving = False
                 self.color = self.mode_color_dict[self.mode]
                 
@@ -261,24 +262,40 @@ class Viewer():
         self.show_info_window()
 
     def show_info_window(self):
-        info_img = np.zeros((150, 600, 3))
-        system_info = "{}/{} images mode:{}".format(str(self.number_of_images_saved), str(GOAL_NO_OF_IMAGES), self.mode)
-        cv.putText(info_img, system_info, (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+        info_img = np.zeros((250, 600, 3)).astype(np.uint8)
+        number_of_images = "Number of images: {}/{}".format(str(self.number_of_images_saved), str(GOAL_NO_OF_IMAGES))
+        number_of_annotations = "Number of annotations: {}".format(str(len(self.coordinates)))
+        viewer_mode = "Viewer mode: {}".format(self.mode)
+        status = "Status: Collecting images"  
         if self.number_of_images_saved >= GOAL_NO_OF_IMAGES:
-            cv.putText(info_img, "!!!GROUP FINISHED!!!", (150, 100 ), cv.FONT_HERSHEY_SIMPLEX, 1, self.color, 1, cv.LINE_AA, False)
+            status = "Status: !!! GROUP FINISHED !!!"
+        elif self.number_of_images_saved != 0 and self.number_of_images_saved % 11 == 0:
+            status = "Status: !!! CHANGE FISH !!!"
+        else:
+            pass
+        
+        info_window_color = self.color
+        if self.mode == "dragging" and len(set(self.previous_coordinates) & set(self.coordinates)) != 0:
+            info_window_color = self.mode_color_dict["not_moved"]
+        
+        cv.putText(info_img, number_of_images, (50, 50), cv.FONT_HERSHEY_SIMPLEX, 1, info_window_color, 1, cv.LINE_AA, False) 
+        cv.putText(info_img, number_of_annotations, (50, 100), cv.FONT_HERSHEY_SIMPLEX, 1, info_window_color, 1, cv.LINE_AA, False) 
+        cv.putText(info_img, viewer_mode, (50, 150), cv.FONT_HERSHEY_SIMPLEX, 1, info_window_color, 1, cv.LINE_AA, False) 
+        cv.putText(info_img, status, (50, 200), cv.FONT_HERSHEY_SIMPLEX, 1, info_window_color, 1, cv.LINE_AA, False)
         cv.imshow("info", info_img)
+        
 
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
-            cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
             annotation = id + side + "-" + species
             #Text border
             cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (0, 0, 0), 10, cv.LINE_AA, False)
             #Actual text
-            if self.mode == "dragging" and len(self.previous_coordinates) != 0 and coordinate in self.previous_coordinates:
-                cv.circle(self.scaled_img, coordinate, 10, (25, 140, 255), 2)
-                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (25, 140, 255), 2, cv.LINE_AA, False)
+            if self.mode == "dragging" and coordinate in self.previous_coordinates:
+                cv.circle(self.scaled_img, coordinate, 10, self.mode_color_dict["not_moved"], 2)
+                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.mode_color_dict["not_moved"], 2, cv.LINE_AA, False)
             else:
+                cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
                 cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.color, 2, cv.LINE_AA, False)
 
     def get(self, event, x, y, flags, param):
@@ -460,7 +477,6 @@ class Viewer():
                 cv.resize( self.scaled_img, ( int(self.scaled_img.shape[1]/3), int(self.scaled_img.shape[0]/3) ) ),  #cv.resize( img, (width, height) )
                 [cv.IMWRITE_JPEG2000_COMPRESSION_X1000, 9]
                 )
-
         self.log_data = data
        
 
