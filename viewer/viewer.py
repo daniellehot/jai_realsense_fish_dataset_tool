@@ -117,7 +117,8 @@ class Viewer():
         self.saving = False
         self.mode_color_dict = {"annotating" : (0, 0, 255),
                                 "dragging" : (0, 255, 255),
-                                "not_moved" : (25, 140, 255), 
+                                "not_moved" : (25, 140, 255),
+                                "toggle_side": (255, 205, 155),
                                 "correcting" : (255, 0, 0),
                                 "saving" : (0, 255, 0)}                                 
         self.mode = "annotating"
@@ -147,7 +148,7 @@ class Viewer():
     
     def on_press(self, key):
         try:
-            if key.char == "s" and len(self.coordinates) != 0 and not self.saving:
+            if key.char == "s" and len(self.coordinates) != 0 and not self.saving: #and not self.saving can be removed, because keylistener is buffering keyboard hits
                 self.saving = True
                 self.color = self.mode_color_dict["saving"]
                 self.heatmapper.update(self.img_cv)
@@ -164,9 +165,13 @@ class Viewer():
 
                     elif self.mode == "dragging":
                         self.dragging = False
+                        self.mode = "toggle_side"
+                        self.color = self.mode_color_dict[self.mode]
+                    
+                    elif self.mode == "toggle_side":
                         self.mode = "correcting"
                         self.color = self.mode_color_dict[self.mode]
-
+                
                     elif self.mode == "correcting":
                         self.mode = "annotating"
                         self.color = self.mode_color_dict[self.mode]
@@ -256,6 +261,8 @@ class Viewer():
                 cv.setMouseCallback(window_title, self.get)
             elif self.mode == "dragging":
                 cv.setMouseCallback(window_title, self.drag)
+            elif self.mode == "toggle_side":
+                cv.setMouseCallback(window_title, self.toggle_side)
             elif self.mode == "correcting": 
                 cv.setMouseCallback(window_title, self.remove)
             cv.imshow(window_title, self.scaled_img)
@@ -284,20 +291,22 @@ class Viewer():
         cv.putText(info_img, status, (50, 200), cv.FONT_HERSHEY_SIMPLEX, 1, info_window_color, 1, cv.LINE_AA, False)
         cv.imshow("info", info_img)
         
-
     def draw_annotations(self):
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
             annotation = id + side + "-" + species
             #Text border
             cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (0, 0, 0), 10, cv.LINE_AA, False)
             #Actual text
-            if self.mode == "dragging" and coordinate in self.previous_coordinates:
+            if not self.saving and self.mode == "dragging" and coordinate in self.previous_coordinates:
                 cv.circle(self.scaled_img, coordinate, 10, self.mode_color_dict["not_moved"], 2)
                 cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.mode_color_dict["not_moved"], 2, cv.LINE_AA, False)
             else:
                 cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
                 cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.color, 2, cv.LINE_AA, False)
 
+    def do_nothing(self, event, x, y, flags, param):
+        pass
+    
     def get(self, event, x, y, flags, param):
         if event == cv.EVENT_LBUTTONDOWN:
             coordinate = (x,y)
@@ -325,12 +334,24 @@ class Viewer():
                         self.dragging = True
                         self.dragged_point_idx =self.coordinates.index(coordinate) 
 
+    def toggle_side(self, event, x, y, flags, param):
+        if event == cv.EVENT_LBUTTONDOWN:
+            for coordinate in self.coordinates:
+                dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
+                if dist < 10:
+                    idx = self.coordinates.index(coordinate)
+                    if self.sides[idx] == "L":  
+                        self.sides[idx] = "R"
+                    elif self.sides[idx] == "R":  
+                        self.sides[idx] = "L"
+                    break
+
     def remove(self, event, x, y, flags, param):    
         if event == cv.EVENT_LBUTTONDOWN:
             for coordinate in self.coordinates:
                 dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
                 if dist < 10:
-                    idx =self.coordinates.index(coordinate)
+                    idx = self.coordinates.index(coordinate)
                     self.coordinates.pop(idx)
                     self.species.pop(idx)
                     self.ids.pop(idx)
@@ -338,9 +359,6 @@ class Viewer():
                     self.log_entry += 1
                     break
 
-    def do_nothing(self, event, x, y, flags, param):
-        pass
-    
     """
     def get_annotation(self):
         self.guiInstance = gui.AnnotationApp()
