@@ -129,7 +129,7 @@ class Viewer():
 
         self.start_keylistener()
         self.create_session_log()
-        self.resized_dim = self.get_resized_dimension(width=2464, height=2056, scale_percent=45)
+        self.resized_dim = self.get_resized_dimension(width=2464, height=2056, scale_percent=50)
 
         self.heatmapper = heatmap.Heatmap(HEATMAPS_PATH, self.resized_dim)
         self.show_heatmap = False
@@ -295,14 +295,14 @@ class Viewer():
         for (coordinate, species, id, side) in zip(self.coordinates, self.species, self.ids, self.sides):
             annotation = id + side + "-" + species
             #Text border
-            cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (0, 0, 0), 10, cv.LINE_AA, False)
+            cv.putText(self.scaled_img, annotation, (coordinate[0]+25, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, (0, 0, 0), 10, cv.LINE_AA, False)
             #Actual text
             if not self.saving and self.mode == "dragging" and coordinate in self.previous_coordinates:
-                cv.circle(self.scaled_img, coordinate, 10, self.mode_color_dict["not_moved"], 2)
-                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.mode_color_dict["not_moved"], 2, cv.LINE_AA, False)
+                cv.circle(self.scaled_img, coordinate, 20, self.mode_color_dict["not_moved"], 2)
+                cv.putText(self.scaled_img, annotation, (coordinate[0]+25, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.mode_color_dict["not_moved"], 2, cv.LINE_AA, False)
             else:
-                cv.circle(self.scaled_img, coordinate, 10, self.color, 2)
-                cv.putText(self.scaled_img, annotation, (coordinate[0]+15, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.color, 2, cv.LINE_AA, False)
+                cv.circle(self.scaled_img, coordinate, 20, self.color, 2)
+                cv.putText(self.scaled_img, annotation, (coordinate[0]+25, coordinate[1]+10), cv.FONT_HERSHEY_SIMPLEX, self.font_size, self.color, 2, cv.LINE_AA, False)
 
     def do_nothing(self, event, x, y, flags, param):
         pass
@@ -330,7 +330,7 @@ class Viewer():
                 #print("Selecting point")
                 for coordinate in self.coordinates:
                     dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
-                    if dist < 10:
+                    if dist < 25:
                         self.dragging = True
                         self.dragged_point_idx =self.coordinates.index(coordinate) 
 
@@ -338,7 +338,7 @@ class Viewer():
         if event == cv.EVENT_LBUTTONDOWN:
             for coordinate in self.coordinates:
                 dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
-                if dist < 10:
+                if dist < 25:
                     idx = self.coordinates.index(coordinate)
                     if self.sides[idx] == "L":  
                         self.sides[idx] = "R"
@@ -350,7 +350,7 @@ class Viewer():
         if event == cv.EVENT_LBUTTONDOWN:
             for coordinate in self.coordinates:
                 dist = math.sqrt(math.pow(x-coordinate[0], 2) + math.pow(y-coordinate[1],2))
-                if dist < 10:
+                if dist < 25:
                     idx = self.coordinates.index(coordinate)
                     self.coordinates.pop(idx)
                     self.species.pop(idx)
