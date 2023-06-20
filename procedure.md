@@ -37,7 +37,7 @@
     cd /home/vap/jai_realsense_fish_dataset_tool/viewer
 
     # In case you have not yet renamed the data folder, rename it. group_1 is only a placeholder 
-    mv data/ group_1
+    mv -n data/ group_1
 
     # Copy the renamed data folder to the harddrive. 
     cp -r -v -n group_1 $HARDDRIVE
