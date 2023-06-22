@@ -39,8 +39,15 @@
     # In case you have not yet renamed the data folder, rename it. group_1 is only a placeholder 
     mv -n data/ group_1
 
-    # Copy the renamed data folder to the harddrive. 
+    # Copy the renamed data folder to the harddrive 
     cp -r -v -n group_1 $HARDDRIVE
+
+    # Make an online backup, WARNING: Depending on your Internet connection, this might take a considerable amount of time 
+    cp -r -v -n group_1 $FISH_DATASET_ONEDRIVE
+    onedrive --synchronize 
+    
+    # Finally, move the data folder to a local backup folder
+    mv -n group_1 $FISH_DATASET_GROUPS
 ```
 
 ### Group preparation
