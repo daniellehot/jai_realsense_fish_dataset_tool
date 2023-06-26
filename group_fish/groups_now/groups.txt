@@ -9,25 +9,22 @@ Group No. 8 Number of fish 20 cod 4 haddock 6 *hake 3 *other 1 whiting 5 *horse 
 Group No. 9 Number of fish 24 cod 3 haddock 11 *hake 3 *other 1 whiting 4 *horse mack 2 X
 Group No. 10 Number of fish 23 cod 6 haddock 8 *hake 3 *other 1 whiting 2 *horse mack 3 X
 Group No. 11 Number of fish 16 cod 3 haddock 4 *hake 2 *other 0 whiting 5 *horse mack 2 X
-Group No. 12 Number of fish 16 cod 4 haddock 4 *hake 2 *other 1 whiting 4 *horse mack 1 /
-Group No. 13 Number of fish 22 cod 2 haddock 5 *hake 5 *other 2 whiting 7 *horse mack 1 /
-Group No. 14 Number of fish 21 cod 5 haddock 7 *hake 0 *other 1 whiting 6 *horse mack 2
+Group No. 12 Number of fish 16 cod 4 haddock 4 *hake 2 *other 1 whiting 4 *horse mack 1 X
+Group No. 13 Number of fish 22 cod 2 haddock 5 *hake 5 *other 2 whiting 7 *horse mack 1 X
+Group No. 14 Number of fish 21 cod 5 haddock 7 *hake 0 *other 1 whiting 6 *horse mack 2 X
 Group No. 15 Number of fish 20 cod 8 haddock 5 *hake 1 *other 1 whiting 3 *horse mack 2 X
-Group No. 16 Number of fish 22 cod 6 haddock 2 *hake 3 *other 2 whiting 5 *horse mack 4
-Group No. 17 Number of fish 21 cod 3 haddock 10 *hake 2 *other 1 whiting 2 *horse mack 3
-Group No. 18 Number of fish 15 cod 1 haddock 3 *hake 4 *other 1 whiting 3 *horse mack 3 /
-Group No. 19 Number of fish 14 cod 3 haddock 4 *hake 1 *other 0 whiting 6 *horse mack 0
-Group No. 20 Number of fish 16 cod 4 haddock 1 *hake 2 *other 3 whiting 2 *horse mack 4
-Group No. 21 Number of fish 21 cod 6 haddock 4 *hake 3 *other 0 whiting 4 *horse mack 4
-Group No. 22 Number of fish 17 cod 0 haddock 5 *hake 2 *other 1 whiting 7 *horse mack 2
+Group No. 16 Number of fish 22 cod 6 haddock 2 *hake 3 *other 2 whiting 5 *horse mack 4 / NOTE -4 horse mack, 18/22
+Group No. 17 Number of fish 21 cod 3 haddock 10 *hake 2 *other 1 whiting 2 *horse mack 3 / NOTE -1 horse mack, 20/21 
+Group No. 18 Number of fish 15 cod 1 haddock 3 *hake 4 *other 1 whiting 3 *horse mack 3 X
+Group No. 19 Number of fish 14 cod 3 haddock 4 *hake 1 *other 0 whiting 6 *horse mack 0 /
+Group No. 20 Number of fish 16 cod 4 haddock 1 *hake 2 *other 3 whiting 2 *horse mack 4 /
+Group No. 21 Number of fish 21 cod 6 haddock 4 *hake 3 *other 0 whiting 4 *horse mack 4 / NOTE -4 horse mack, 17/21
+Group No. 22 Number of fish 17 cod 0 haddock 5 *hake 2 *other 1 whiting 7 *horse mack 2 X
 Group No. 23 Number of fish 14 cod 4 haddock 3 *hake 0 *other 0 whiting 4 *horse mack 3 X
-Group No. 24 Number of fish 14 cod 2 haddock 2 *hake 2 *other 2 whiting 3 *horse mack 3
-Group No. 25 Number of fish 23 cod 12 haddock 6 *hake 1 *other 1 whiting 3 *horse mack 0
+Group No. 24 Number of fish 14 cod 2 haddock 2 *hake 2 *other 2 whiting 3 *horse mack 3 X
+Group No. 25 Number of fish 23 cod 12 haddock 6 *hake 1 *other 1 whiting 3 *horse mack 0 / 
 
 
 
-23.6 - Groups 12, 13, 18 
-26.6 - Groups 14, 22, 24 
-27.6 - Groups 16, 20, 19
-28.6 - Groups 17, 21
-29.6 - Group 25
+27.6 - Groups 25, 21, 19
+28.6 - Groups 17, 16, 20
