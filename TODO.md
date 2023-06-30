@@ -18,7 +18,7 @@
     - 56 cod to 59 cod, image 44 to 55
 * Group 17
     - 28R cod to 82R cod
-* Group 26
+* Group 26 X
     - remove 67
     - add calibration
 

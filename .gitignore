@@ -229,3 +229,4 @@ heatmap/data
 heatmap/*.zip
 
 depth_analysis_tools/depth_analysis_data*
+data_analysis_tools/group_*
