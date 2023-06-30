@@ -13,7 +13,10 @@ def fix_path(path, group_str):
 
 
 if __name__=="__main__":
-    groups = os.listdir("/home/vap/groups/")
+    #groups = os.listdir("/home/vap/groups/")
+    groups = os.listdir("/home/vap/OneDrive/autofish_groups/")
+    groups = [group for group in groups if "group_" in group]
+    groups.sort()
     print("GROUPS: {}".format(groups))
     print("================================")
     print("LEGEND")
