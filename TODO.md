@@ -1,36 +1,31 @@
-* Group 7 
-    - change 10L-haddock to 109L-haddock, image 44 - 55
-* Group 5 
-    - 116 haddock, change side for images 32, 33, 35, 36, 37, 38
-    - count number of images with the left and right side
-* Group 13 
-    - 25 HorseMac L to R, image 44 to 55
-    - 2 saithe R to L, image 44 to 55
+# Annotation errors 
+* Group 7
+    - change 10L-haddock to 109L-haddock, images 44 to 55
+* Group 5
+    - 116haddock, change side for images 32, 33, 35, 36, 37, 38
+    - count the number of images with the left and right side, and make sure there are 10 for each side
+* Group 13
+    - change 25horseMac from L to R, images 44 to 55
+    - change 2saithe from R to L, images 44 to 55
 * Group 14
-    - 104Rcod to 104Rhaddock, image 44 to 55
+    - change 104R-cod to 104R-haddock, images 44 to 55
 * Group 24
-    - 43 other R to L, image 45, 46
-    - 26 other side is wrong. image 44 to 58
-    - 26 and 30 horse mac switched?
+    - change 43other from R to L, images 45, 46
+    - 26other, side annotation is incorrect, images 44 to 58
+    - 26 and 30 horse mac switched? Investigate further
 * Group 25
-    - 99 cod R to L, image 44 to 55
+    - change 99cod from R to L, images 44 to 55
 * Group 21
-    - 56 cod to 59 cod, image 44 to 55
+    - change 56cod to 59cod, images 44 to 55
 * Group 17
-    - 28R cod to 82R cod
-* Group 26 X
-    - remove 67
-    - add calibration
+    - change 28R-cod to 82R-cod
 
-
+# Other 
 * X Annotation company
 - https://www.data-factory.dk/index.html
-
-* Check data  
-** Can we baalance the groups we have collected so far?
 
 * Fix the procedure 
 * Document depth analysis 
 
 # Not urgent
-* Viewer.py - Add previous photos window with arrows for scrolling (okay way to check which fish were moved already) 
+* Viewer.py - Add previous photos window with arrows for scrolling
