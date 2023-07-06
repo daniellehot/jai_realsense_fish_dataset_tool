@@ -21,8 +21,8 @@
     - change 28R-cod to 82R-cod
 
 # Other 
-* X Annotation company
-- https://www.data-factory.dk/index.html
+* Annotation company
+    - https://www.data-factory.dk/index.html
 
 * Fix the procedure 
 * Document depth analysis 
