@@ -24,7 +24,7 @@
 * Annotation company
     - https://www.data-factory.dk/index.html
 
-* Fix the procedure 
+* Update procedure.md
 * Document depth analysis 
 
 # Not urgent
