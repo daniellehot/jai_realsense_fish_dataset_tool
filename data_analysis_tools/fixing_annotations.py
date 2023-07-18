@@ -2,6 +2,7 @@ from argparse import ArgumentParser
 import os 
 import csv
 import cv2 as cv
+import logging
 
 def createArgumentParser():
     parser = ArgumentParser()
@@ -21,6 +22,8 @@ def format_args(args):
     return args.path, group, files, querry_annotation, args.new_annotation.split("-")
 
 if __name__=="__main__":
+    logging.basicConfig(filename="example.log", encoding="utf-8", level=logging.DEBUG)
+
     args = createArgumentParser().parse_args()
     path, group, files, querry_annotation, new_annotation = format_args(args)
 
@@ -48,6 +51,8 @@ if __name__=="__main__":
             for annotation in annotations:
                 saved_annotation = annotation["id"] + annotation["side"] + "-" + annotation["species"]
                 if saved_annotation == querry_annotation:
+                    log_str = " {}, {}, {}".format(annotations_path, saved_annotation, new_annotation)
+                    logging.info(log_str)
                     print(saved_annotation)
                     print(querry_annotation) 
 
